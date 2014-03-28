@@ -1,19 +1,24 @@
-﻿<?php  
+<?php  
 //$webchat_baiduObj = new webchat_baidu();
 //echo $webchat_baiduObj->getPOI('31.246513,121.544087','饭店',0);
 //echo $webchat_baiduObj->getwenwen2('http://wenwen.soso.com/z/q241607829.htm?w=%B0%AE%C7%E9%CA%C7%CA%B2%C3%B4&amp;spi=1&amp;sr=8&amp;w8=%E7%88%B1%E6%83%85%E6%98%AF%E4%BB%80%E4%B9%88&amp;qf=20&amp;rn=2396118&amp;qs=4&amp;sid=0a8804ad00005566517bdb1cdc1c94a2&amp;uid=0&amp;ch=w.search.8');
 //$webchat_baiduObj->getbaike('爱情');
 //echo $webchat_baiduObj->getzhidao('爱情', '', 1);
 //echo $webchat_baiduObj->getask('http://www.120ask.com/question/2008/4699411.htm');
+//echo $webchat_baiduObj->getnews("倒计时", 0, "");
+
+require_once "webHelper.php";
+
 class webchat_baidu
 {	
 	//获取新闻 
 	public function getnews($keyword, $rn, $fromuser){   
 		if(strlen(trim(	$keyword) ) == 0)
 			return '查看新闻，请在新闻后面加上关键字，如：新闻 爱情';
-		$countrn = (($rn+3) % 10 + 1)*10; 
+		$countrn = (($rn+3) / 10 + 1)*10;
  		$curl = curl_init();  
-		curl_setopt($curl, CURLOPT_URL, 'http://news.baidu.com/ns?word='.urlencode(iconv("utf-8","gb2312", $keyword)).'&tn=newstitle&from=news&sr=0&&clk=sortbytime&cl=2&ct=0&prevct=1&rn='.$countrn); 
+		curl_setopt($curl, CURLOPT_URL, 'http://news.baidu.com/ns?word='.urlencode($keyword).'&pn='.$rn.
+                    '&ie=utf-8&tn=newstitle&from=news&sr=0&&clk=sortbytime&cl=2&ct=0&prevct=1&rn=3');
 	 	curl_setopt($curl, CURLOPT_HEADER, 0);  
 		curl_setopt($curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1");
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
@@ -23,206 +28,232 @@ class webchat_baidu
 		if($data == false)
 			return 'Oops!这破网太慢啦，请再试一遍~';
 	 
-		$index = strpos($data, '<p class="res">');
-		$index2 = strpos($data, '</p>', $index);
+		$index = strpos($data, '<ul>');
+		$index2 = strpos($data, '</ul>', $index);
 		$data = substr($data, $index, $index2 - $index);
-        preg_match_all("/<span>(.*)span>/", $data, $ar); 
-		$c = count($ar[0]);
-		$re = '';  
-		for($i = $rn; $i < $rn+3 && $i < $c; $i++){
-			$tmp = $ar[0][$i];
-			$index = strpos($tmp, '<a href=');
-			$index2 = strpos($tmp, '  mon', $index); 
-			$link = substr($tmp, $index+8, $index2 - $index - 8); 
+		$tmp = $data;
+		$re = "";
+		$more = true;
+		for($i = $rn; $i < $rn+3; $i++){
+			$index = strpos($tmp, '<h3 class="c-title">');
+			if($index === false){
+				$more = false;
+				break;
+			}
+			$index = strpos($tmp, '<a href="', $index);
+
+			$index2 = strpos($tmp, '"', $index + 10); 
+			$link = substr($tmp, $index + 9, $index2 - $index - 9); 
 			
 			$index = strpos($tmp, '>', $index2);
 			$index2 = strpos($tmp, '</a>', $index); 
 			$words = substr($tmp, $index+1, $index2 - $index - 1);  
 			$words = str_replace('<font color=#C60A00>', '', $words);
 			$words = str_replace('</font>', '', $words); 
+			$words = str_replace('<em>', '', $words);
+			$words = str_replace('</em>', '', $words);
 			
-			$index = strpos($tmp, '<font class=g size=1>');
-			$index2 = strpos($tmp, '</font>', $index); 
-			$news = substr($tmp, $index+21, $index2 - $index - 21);
-			$index = strpos($news, ' ');  
-			$news = substr($news, $index);  
+			$index = strpos($tmp, '<span class="c-author">', $index2);
+			$index2 = strpos($tmp, '</span>', $index); 
+			$news = substr($tmp, $index + strlen('<span class="c-author">'), $index2 - $index - strlen('<span class="c-author">'));
 			
-			$re .= "\n".$news."\n"." <a href=\"".$link."\" >".$words."</a>";
+			$news = str_replace('&nbsp;', "\n", $news);
+			
+			//$re .= $news."\n"." <a href=\"".$link."\" >".$words."</a>";
+			$re .=$news."<a href=\"".$link."\" >".$words."</a>";
+			$tmp = substr($tmp, $index2); 
+			
 		}  
 		if(strlen($re) == 0)
 			return 'Sorry！木有相关新闻哦~';
 			
 		d_setnewsflag($fromuser, $rn+3);
 		$re = str_replace('&quot;', '"', $re);
-		$re = iconv("gbk","utf-8", $re);
-		if($c > $rn+3)
+		if($more)
 			$re .= "\n【获取更多回复p】"; 
 		return $re; 
 	}
 	//获取百度知道答案摘要，正常有两个答案，否则就一个
-	public function getzhidao($keyword, $fromuser, $flag){  
-		//if($this->getrand(1) == 0)
-			return $this->getwenwen($keyword, $fromuser, $flag);
-			
- 		$curl = curl_init();  
-		curl_setopt($curl, CURLOPT_URL, 'http://zhidao.baidu.com/search?lm=0&rn=10&pn=0&fr=search&ie=utf-8&word='.urlencode($keyword).'&f=sug'); 
-	 	curl_setopt($curl, CURLOPT_HEADER, 0); 
-		curl_setopt($curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1");
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
-		curl_setopt($curl, CURLOPT_TIMEOUT, 4); 
-		$data = curl_exec($curl);  
-		curl_close($curl);  
+	public function getzhidao($keyword, $fromuser, $flag){
+		
+		$url = 'http://zhidao.baidu.com/search?lm=0&rn=10&pn=0&fr=search&ie=utf-8&word='.urlencode($keyword).'&f=sug';
+		$webHelperObj = new webHelper();
+		$data = $webHelperObj->get($url);
+		
 		if($data == false)
 			return 'Oops!这破网太慢啦，请再试一遍~';
-		$data = iconv("gbk","utf-8", $data);
-        preg_match_all("|<p><span class=\"answer-flag\">.*<b>:<\/b><\/span>(.*)<\/p>|U", $data, $ar); 
-		$c = count($ar[0]); 
-		$n = 0;
-		$link = '';   
-		$answers = ''; //回复变量
-		if($c == 0){ 
-		//	preg_match_all("|<p class=\"ans\">(.*)<\/p>|U", $data, $ar); 
-			preg_match_all("|<span class=\"date\">([\s\S]{20,})<\/p>|U", $data, $ar); 
-			$c = count($ar[0]); 
-			if($c == 0){
-				return '';
-			} 
-			//答案一
-			$n = $this->getrand($c-1);
-			$re = $ar[1][$n];
-			
-			$index = strpos($re, '<'); 
-			$solve = substr($re, 0,  $index); 
-			
-			$index = strpos($re, '<p class="ans">');
-			$re = substr($re, $index + strlen('<p class="ans">')); 
-			
-			$index = strpos($re, '<a');
-			if($index !== false){ 
-				$index = strpos($re, 'href=', $index);
-				$index2 = strpos($re, 'target', $index);
-				$link = substr($re, $index + 6, $index2 - $index - 6 - 2);
-				$re = substr($re, 0, strpos($re, '<a')); 
-			}
-			$re = str_replace('<em>','', $re);
-			$re = str_replace('</em>','', $re);
-			$re = str_replace('&lt;','<', $re);
-			$re = str_replace('&gt;','>', $re);
-			if(strlen($link) > 0){
-				d_setzhidaostr($fromuser, $link, 0);
-				$re .= "\n【获取详细回复a】";
-			}
-			//不是提问
-			if($flag == 0)
-				return $re;
-				
-			//if(strlen($solve) > 0)
-			//	$re = '回答时间：'.$solve."\n".$re;		
-			$answers .= $re;
-			
-			//不是提问
-			if($flag == 0)
-				return $answers;
-				
-			//答案二
-			$n = ($n + 1)%$c;
-			$re = $ar[1][$n];
-			
-			$index = strpos($re, '<'); 
-			$solve = substr($re, 0,  $index);  
-			
-			$index = strpos($re, '<p class="ans">');
-			$re = substr($re, $index + strlen('<p class="ans">'));
-			
-			$index = strpos($re, '<a');
-			if($index !== false){ 
-				$index = strpos($re, 'href=', $index);
-				$index2 = strpos($re, 'target', $index);
-				$link = substr($re, $index + 6, $index2 - $index - 6 - 2);
-				$re = substr($re, 0, strpos($re, '<a')); 
-			}
-			$re = str_replace('<em>','', $re);
-			$re = str_replace('</em>','', $re);
-			$re = str_replace('&lt;','<', $re);
-			$re = str_replace('&gt;','>', $re);
-			if(strlen($link) > 0){
-				d_setzhidaostr($fromuser, $link, 1);
-				$re .= "\n【获取详细回复b】";
-			}
-			//if(strlen($solve) > 0)
-			//	$re = '回答时间：'.$solve."\n".$re;		
-			$answers .= "\n\n-----------------\n\n";
-			$answers .= $re;
-			
-		}else{  
-			//答案一
-			$n = $this->getrand($c-1);
-			$index = 0; 
-			$re = $ar[1][$n]; 
-			if(strstr($re, '...')){
-				for($i = 0; $i <= $n; $i++){
-					$index = strpos($data, '<dt class="result-title"', $index + 10); 
-				} 
-				$index = strpos($data, '</span>20', $index);
-				$index2 = strpos($data, '<', $index + 2);
-				$solve = trim(substr($data, $index+7, $index2 - $index-7));
-				
-				$index = strpos($data, '<span class="num-answers"><a href="', $index);
-				$index2 = strpos($data, 'html', $index);
-				$link = substr($data, $index + strlen('<span class="num-answers"><a href="'), 
-				$index2 - $index - strlen('<span class="num-answers"><a href="') + 4);
-			}
-			$re = str_replace('<em>','', $re);
-			$re = str_replace('</em>','', $re);
-			$re = str_replace('&lt;','<', $re);
-			$re = str_replace('&gt;','>', $re);
-			if(strlen($link) > 0){
-				d_setzhidaostr($fromuser, $link, 0);
-				$re .= "\n【获取详细回复a】";
-			}
-			//不是提问
-			if($flag == 0)
-				return $re;
-			
-			//if(strlen($solve) > 0)
-			//	$re = '回答时间：'.$solve."\n".$re;	
-			$answers .= $re;
-			
-			//答案二
-			$n = ($n + 1)%$c;
-			$index = 0; 
-			$re = $ar[1][$n]; 
-			if(strstr($re, '...')){
-				for($i = 0; $i <= $n; $i++){
-					$index = strpos($data, '<dt class="result-title"', $index + 10); 
-				} 
-				$index = strpos($data, '</span>20', $index);
-				$index2 = strpos($data, '<', $index + 2);
-				$solve = trim(substr($data, $index+7, $index2 - $index-7));
-				
-				$index = strpos($data, '<span class="num-answers"><a href="', $index);
-				$index2 = strpos($data, 'html', $index);
-				$link = substr($data, $index + strlen('<span class="num-answers"><a href="'), 
-				$index2 - $index - strlen('<span class="num-answers"><a href="') + 4);
-			}
-			$re = str_replace('<em>','', $re);
-			$re = str_replace('</em>','', $re);
-			$re = str_replace('&lt;','<', $re);
-			$re = str_replace('&gt;','>', $re);
-			if(strlen($link) > 0){
-				d_setzhidaostr($fromuser, $link, 1);
-				$re .= "\n【获取详细回复b】";
-			}
-			//if(strlen($solve) > 0)
-			//	$re = '回答时间：'.$solve."\n".$re;	
-			$answers .= "\n\n-----------------\n\n";
-			$answers .= $re;
-			
-		}
 		
-		return $answers."\n\n☆回答的不对的话，亲，你重发一遍或换种表达方式，好不好?☆"; 
+		/////////////处理百科，百度经验
+		if(strstr($data, "<dl class=\"line\">")){
+			$re = mb_convert_encoding($data, "UTF-8", "GBK");
+		
+			$index = strpos($re, '<dl class="line">');
+			$index2 = strpos($re, '</dl>', $index);
+			$re = trim(substr($re, $index, $index2 - $index));
+			
+			$index = strpos($re, '<a href="');
+			$index2 = strpos($re, '"', $index + 15);
+			$link = trim(substr($re, $index+9, $index2 - $index-9));
+				
+			$index = strpos($re, '<p>', $index2);
+            if($index != false) {
+                $index2 = strpos($re, '</p>', $index);
+                $re = trim(substr($re, $index + 3, $index2 - $index - 3));
+            }else{
+                $index = strpos($re, '<dd', $index2);
+                $index2 = strpos($re, '</dd>', $index);
+                $re = trim(substr($re, $index, $index2 - $index));
+            }
+			
+			$re = str_replace('<em>','', $re);
+			$re = str_replace('</em>','', $re);
+			$re = str_replace('&lt;','<', $re);
+			$re = str_replace('&gt;','>', $re);
+			
+			if(strstr($re, '...')){
+				d_setzhidaostr($fromuser, $link, 0);
+				$re .= "\n【获取详细回复a】";
+			}
+			$answers = $re;
+		}
+		else {
+			/////////////处理答案
+			preg_match_all("|<dl class=\"dl\" data-fb=\"([\s\S]*)<\/dl>|U", $data, $ar); 
+			$c = count($ar[0]);
+			$n = 0;
+			$link = '';   
+			$answers = ''; //回复变量
+			if($c == 0){
+				preg_match_all("|<span class=\"date\">([\s\S]{20,})<\/p>|U", $data, $ar); 
+				$c = count($ar[0]); 
+				if($c == 0){
+					return '';
+				} 
+				//答案一
+				$n = $this->getrand($c-1);
+				$re = $ar[1][$n];
+				
+				$index = strpos($re, '<'); 
+				$solve = substr($re, 0,  $index); 
+				
+				$index = strpos($re, '<p class="ans">');
+				$re = substr($re, $index + strlen('<p class="ans">')); 
+				
+				$index = strpos($re, '<a');
+				if($index !== false){ 
+					$index = strpos($re, 'href=', $index);
+					$index2 = strpos($re, 'target', $index);
+					$link = substr($re, $index + 6, $index2 - $index - 6 - 2);
+					$re = substr($re, 0, strpos($re, '<a')); 
+				}
+				$re = str_replace('<em>','', $re);
+				$re = str_replace('</em>','', $re);
+				$re = str_replace('&lt;','<', $re);
+				$re = str_replace('&gt;','>', $re);
+				if(strlen($link) > 0){
+					d_setzhidaostr($fromuser, $link, 0);
+					$re .= "\n【获取详细回复a】";
+				}
+				//不是提问
+				if($flag == 0)
+					return $re;
+					
+				//if(strlen($solve) > 0)
+				//	$re = '回答时间：'.$solve."\n".$re;		
+				$answers .= $re;
+				
+				//不是提问
+				if($flag == 0)
+					return $answers;
+					
+				//答案二
+				$n = ($n + 1)%$c;
+				$re = $ar[1][$n];
+				
+				$index = strpos($re, '<'); 
+				$solve = substr($re, 0,  $index);  
+				
+				$index = strpos($re, '<p class="ans">');
+				$re = substr($re, $index + strlen('<p class="ans">'));
+				
+				$index = strpos($re, '<a');
+				if($index !== false){ 
+					$index = strpos($re, 'href=', $index);
+					$index2 = strpos($re, 'target', $index);
+					$link = substr($re, $index + 6, $index2 - $index - 6 - 2);
+					$re = substr($re, 0, strpos($re, '<a')); 
+				}
+				$re = str_replace('<em>','', $re);
+				$re = str_replace('</em>','', $re);
+				$re = str_replace('&lt;','<', $re);
+				$re = str_replace('&gt;','>', $re);
+				if(strlen($link) > 0){
+					d_setzhidaostr($fromuser, $link, 1);
+					$re .= "\n【获取详细回复b】";
+				}
+				//if(strlen($solve) > 0)
+				//	$re = '回答时间：'.$solve."\n".$re;		
+				$answers .= "\n\n-----------------\n\n";
+				$answers .= $re;
+				
+			}
+			else{  
+				//答案一
+				$n = $this->getrand($c-1);
+				$index = 0; 
+				$re = $ar[1][$n];
+				$re = $this->handlezhidao($re);
+				if(strstr($re, '...')){
+					d_setzhidaostr($fromuser, $link, 0);
+					$re .= "\n【获取详细回复a】";
+				}
+				//不是提问
+				if($flag == 0)
+					return $re;
+				 
+				$answers .= $re;
+				
+				//答案二
+				$n = ($n + 1)%$c;
+				$index = 0; 
+				$re = $ar[1][$n]; 
+				$re = $this->handlezhidao($re);
+				
+				if(strstr($re, '...')){
+					d_setzhidaostr($fromuser, $link, 1);
+					$re .= "\n【获取详细回复b】";
+				}
+				
+				//合并两个答案
+				$answers .= "\n\n-----------------\n\n";
+				$answers .= $re;
+				
+			}
+		}
+		$answers = $this->getcontent($answers);
+		return $answers."\n\n☆回答的不对的话，换种表达方式☆";
 	}  
 	
+	public function handlezhidao($re) {
+	
+		$re = mb_convert_encoding($re, "UTF-8", "GBK");
+		
+		$index = strpos($re, '<a href="', $index);
+		$index2 = strpos($re, '"', $index + 10);
+		$link = trim(substr($re, $index+9, $index2 - $index-9));
+			
+		$index = strpos($re, '<dd class="dd answer">', $index2);
+		$index2 = strpos($re, '</dd>', $index);
+		$len = strlen("<dd class=\"dd answer\"><i class=\"i-answer-text\">答：</i>");
+		$re = trim(substr($re, $index + $len, $index2 - $index - $len));
+		
+		$re = str_replace('<em>','', $re);
+		$re = str_replace('</em>','', $re);
+		$re = str_replace('&lt;','<', $re);
+		$re = str_replace('&gt;','>', $re);
+		
+		return $re;
+	}
 	//百度知道，通过链接，获取内容
 	public function getzhidao2($fromuser, $flag){  
 		$link = d_getzhidaostr($fromuser, $flag);
@@ -232,15 +263,12 @@ class webchat_baidu
 			return $this->getwenwen2($link);
 		if(strstr($link, '120ask.com'))
 			return $this->getask($link);
+		if(strstr($link, 'jingyan.baidu.com'))
+			return $this->getjingyan($link);
 			
- 		$curl = curl_init();  
-		curl_setopt($curl, CURLOPT_URL,  $link); 
-	 	curl_setopt($curl, CURLOPT_HEADER, 0); 
-		curl_setopt($curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1");
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
-		curl_setopt($curl, CURLOPT_TIMEOUT, 4); 
-		$data = curl_exec($curl);  
-		curl_close($curl);  
+		$webHelperObj = new webHelper();
+		$data = $webHelperObj->get($link);
+		
 		if($data == false)
 			return 'Oops!这破网太慢啦，请再试一遍~';
 		$index = 0;
@@ -263,7 +291,27 @@ class webchat_baidu
 		$re = str_replace('&nbsp;'," ", $re);  
 		
 		return $re; 
-	}  
+	}
+    //baidu经验
+    public function getjingyan($link) {
+        
+		$webHelperObj = new webHelper();
+		$data = $webHelperObj->get($link);
+		
+		if($data == false)
+			return 'Oops!这破网太慢啦，请再试一遍~';
+        
+        $index  = strpos($data, '<div class="content-listblock-text">');
+        $index2 = strpos($data, '</div>', $index);
+        $len = strlen('<div class="content-listblock-text">');
+        $re = substr($data, $index + $len, $index2 - $index - $len);
+        
+        
+		$re = $this->getcontent($re);
+        
+        return $re;
+        
+    }
 	
 	//通过链接获取 搜搜百科 内容
 	public function getsosobaike($link){
@@ -320,14 +368,14 @@ class webchat_baidu
 	//获取搜搜问问答案摘要，正常有两个答案，否则就一个
 	public function getwenwen($keyword, $fromuser, $flag){ 
  		$curl = curl_init();  
-		$link = 'http://wenwen.soso.com/z/Search.e?sp=S'.urlencode($keyword).'&w='.urlencode($keyword).'&search=%E6%90%9C%E7%B4%A2%E7%AD%94%E6%A1%88';
+		$link = 'http://wenwen.soso.com/s/?w='.urlencode($keyword).'&search=%E6%90%9C%E7%B4%A2%E7%AD%94%E6%A1%88';
 		curl_setopt($curl, CURLOPT_URL, $link); 
 	 	curl_setopt($curl, CURLOPT_HEADER, 0);   
 		curl_setopt($curl, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1"); 
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); 
 		curl_setopt($curl, CURLOPT_TIMEOUT, 4); 
 		$data = curl_exec($curl);  
-		curl_close($curl);  
+		curl_close($curl);
 		if($data == false)
 			return 'Oops!这破网太慢啦，请再试一遍~'; 
 	 
@@ -376,11 +424,14 @@ class webchat_baidu
 		$re = str_replace('</em>','', $re);
 		$re = str_replace('&lt;','<', $re);
 		$re = str_replace('&gt;','>', $re);
-		$re = str_replace('<p>',"\n", $re); 
+		$re = str_replace('<p>',"\n", $re);
+		$re = str_replace('</p>',"\n", $re);
 		$re = str_replace('&amp;gt;',">", $re); 
 		$re = str_replace('&amp;lt;',"<", $re);  
-		$re = str_replace('<br>',"\n", $re); 
+		$re = str_replace('<br>',"\n", $re);
+		$re = str_replace("&nbsp;"," ", $re);
 		
+        
 		//不是提问
 		if($flag == 0)
 			return $re;
@@ -424,7 +475,8 @@ class webchat_baidu
 		$re = str_replace('<p>',"\n", $re); 
 		$re = str_replace('&amp;gt;',">", $re); 
 		$re = str_replace('&amp;lt;',"<", $re); 
-		$re = str_replace('<br>',"\n", $re); 
+		$re = str_replace('<br>',"\n", $re);
+		$re = str_replace("&nbsp;"," ", $re);
 		
 		$index = strpos($tmp, '解决时间&nbsp;');
 		if($index == false)
@@ -439,6 +491,8 @@ class webchat_baidu
 		$answers .= "\n\n-----------------\n\n";
 		$answers .= $re;
 		
+        $answers = $this->getcontent($answers);
+        
 		return $answers."\n\n☆重发一遍或换种表达方式，可能会有让你更满意的答案☆"; 
 	}   
 	
@@ -501,7 +555,7 @@ class webchat_baidu
 				$index_1 = strpos($re, '<pre>');
 				$index_2 = strpos($re, '</pre>', $index_1); 
 				$re = substr($re, $index_1 + 5, $index_2 - $index_1 - 5);
-			} 
+			}
 			$re = str_replace('<br />',"\n", $re); 
 			$re = str_replace('<br/>',"\n", $re); 
 			$re = str_replace('<br>',"\n", $re); 
@@ -509,15 +563,19 @@ class webchat_baidu
 			$re = str_replace('<p _extended="true">',"", $re);
 			$re = str_replace('<p>',"", $re);  
 			$re = str_replace('</p>',"\n", $re); 
-			$re = str_replace('&nbsp;'," ", $re);   
+			$re = str_replace('&nbsp;'," ", $re);
+			$re = str_replace('&gt;'," ", $re);
 			$re = str_replace('楼主',"", $re);    
 			$re = str_replace('<strong _extended="true">',"", $re);    
 			$re = str_replace('</strong>',"", $re);  
-			 
+            
+            
 			$re_last .= $re."\n";
 			$data = substr($data, $index2);
 			$index = 0;  
 		}
+        
+        $re_last = $this->getcontent($re_last);
 		 
 		return trim($re_last); 
 	}  
@@ -637,10 +695,8 @@ class webchat_baidu
 		curl_close($curl);  
 		if($data == false)
 			return 'Oops!这破网太慢啦，请再试一遍~';
-		echo $data;
 		$Message = json_decode($data, true); 
 		$re = '';
-		echo $data;
 		if($Message['message'] == 'ok'){   
 			for($i = 0; $i < count($Message['results']); $i++){
 				$re .= $Message['results'][$i]['name'];
@@ -703,6 +759,18 @@ class webchat_baidu
 		$result = $numbers[mt_rand(0, $m)];  
 		return (abs(($result * time()) % ($m + 1)) + mt_rand(0, 100))% ($m + 1);
 	}
+	//去除尖括号
+    function getcontent($tmp) {
+        while(strstr($tmp, '<')){
+			$index = strpos($tmp, '<');
+			$index2 = strpos($tmp, '>', $index);
+            if($index2 === false) {
+                break;
+            }
+			$tmp = substr($tmp, 0, $index).substr($tmp, $index2+1);
+		}
+        return $tmp;
+    }
 //	echo baidu_getzhidao('怎样才能不自卑');
 }
 ?>

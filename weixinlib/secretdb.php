@@ -1,7 +1,8 @@
-﻿<?php  
+<?php  
 
 require_once "databaseutil.php";
-
+require_once "mysqlHelper.php";
+    
 	//database operations--------------------
 	function secret_welcome(){ 
 		$contentStr = //"许下你dē诺言，写下你想对ta说的话，送出对ta默默地祝福，留下你的抱怨你的委屈你的感激。\n"
@@ -15,8 +16,8 @@ require_once "databaseutil.php";
 		//."回复 kta 查看指定名字收到的告白\n\n"
 		//."回复 h 查看所有功能\n\n"
 		 "当想找人聊天时，我可以24小时陪你！\n\n"
-		."当你嫌弃浏览器网页太慢太费流量时，我10秒内一定给你回答!\n\n"
-		."聊天卖萌天气星座火车新闻查快递翻译笑话藏头诗等等，更多惊喜等你发现~\n\n"
+		."让你更省流量，让生活更方便!\n\n"
+		."聊天卖萌天气星座火车公交新闻查快递翻译笑话藏头诗等等，更多惊喜等你发现~\n\n"
 		."更有每日一条精心挑选的文字，或励志或实用或开阔你的眼界!\n\n"
 		."要是需要其他功能，还会及时特意为您订制!\n\n"
 		."回复h  查看所有功能";
@@ -55,136 +56,99 @@ require_once "databaseutil.php";
 	function secret_inserttext($fromuser, $keyword){ 
 		 
 		//database connection  
-		$keyword = addslashes($keyword);  
-		 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";  
-		
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
+		$keyword = addslashes($keyword);
 		$contetstr = ''; 
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'"); 
-			$sql = "select secret_touser from users where user ='$fromuser'"; 
-			$result = mysql_query($sql, $conn); 
-			if($row = mysql_fetch_array($result)){ 
-				$touser = $row['secret_touser'];  
-				$sql = "insert into secretwords (user, touser, words) values('$fromuser','$touser', '$keyword')"; 
-				$result = mysql_query($sql, $conn); 
-				$sql = "update users set secretIndex = 0"; 
-				$result = mysql_query($sql, $conn); 
-			}
+		$sql = "select secret_touser from users where user ='$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];  
+			$touser = $row['secret_touser'];  
+			$sql = "insert into secretwords (user, touser, words) values('$fromuser','$touser', '$keyword')"; 
+			$mysqlHelperObj->execute($sql);
+			$sql = "update users set secretIndex = 0"; 
+			$mysqlHelperObj->execute($sql);
 		}  
 	}
 	//插入对话的人
-	function secret_inserttouser($fromuser, $touser){  
-		 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";  
-		
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		$contetstr = ''; 
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'"); 
-			$sql = "update users set secret_touser = '$touser' where user ='$fromuser'"; 
-			$result = mysql_query($sql, $conn); 
-		} 
+	function secret_inserttouser($fromuser, $touser){
+		$sql = "update users set secret_touser = '$touser' where user ='$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();  
+		$mysqlHelperObj->execute($sql);
 	}
 	//获取对话的人
 	function secret_gettouser($fromuser){  
 		 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";  
-		
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$contetstr = ''; 
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'"); 
-			$sql = "select secret_touser from users where user ='$fromuser'"; 
-			$result = mysql_query($sql, $conn); 
-			$row = mysql_fetch_array($result); 
+		$sql = "select secret_touser from users where user ='$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];  
 			$contetstr = $row['secret_touser'];  
 		} 
 		return $contetstr;
 	}
 	//查看最新的话
 	function secret_latestwords($fromuser){
-		//database connection  		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
+		//database connection
 		$contetstr = ''; 
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'");
-			$secretIndex = 0;
- 			$sql = "select secretIndex from users where user = '$fromuser'"; 
-			$result = mysql_query($sql, $conn); 
-			if($result){ 
-				$row = mysql_fetch_array($result); 
-				$secretIndex = $row['secretIndex'];  
-				//database operation
-				//$sql = "select touser, words, UNIX_TIMESTAMP(ptime) as ptime from secretwords order by id desc limit $secretIndex , 10";  
-				$sql = "select pcount, secretwords.id as sid, city, sex, touser, words,UNIX_TIMESTAMP(secretwords.ptime) as pptime from secretwords, users where users.user= secretwords.user order by secretwords.id desc limit $secretIndex , 10";
-				$result = mysql_query($sql, $conn); 
-				$nn = 0;
-				$idStack = array();
-				if($result){
-					date_default_timezone_set('PRC');
-					while($row = mysql_fetch_array($result)){ 
-						$city = $row['city'];  
-						$sex = $row['sex'];  
-						$touser = $row['touser'];  
-						$words = $row['words']; 
-						$ptime = $row['pptime']; 
-						$pcount = intval($row['pcount'])+1; 
-						array_push($idStack, $row['sid']);
+		$secretIndex = 0;
+ 		$sql = "select secretIndex from users where user = '$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];  
+			$secretIndex = $row['secretIndex'];
+			//$sql = "select touser, words, UNIX_TIMESTAMP(ptime) as ptime from secretwords order by id desc limit $secretIndex , 10";  
+			$sql = "select pcount, secretwords.id as sid, city, sex, touser, words,UNIX_TIMESTAMP(secretwords.ptime) as pptime from secretwords, users where users.user= secretwords.user order by secretwords.id desc limit $secretIndex , 10";
+		
+			$nn = 0;
+			date_default_timezone_set('PRC');
+			$idStack = array();
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){
+				$len = count($rows);
+				for($i = 0; $i < $len; $i++) { 
+					$row = $rows[$i];
+					$city = $row['city'];  
+					$sex = $row['sex'];  
+					$touser = $row['touser'];  
+					$words = $row['words']; 
+					$ptime = $row['pptime']; 
+					$pcount = intval($row['pcount'])+1; 						
+					array_push($idStack, $row['sid']);
+					
+					//if($sex == '0')
+					//	$sex = '某女生';
+					//else if($sex == '1')
+					//	$sex = '某男生';
+					//else
+						$sex = '某人';
 						
-						//if($sex == '0')
-						//	$sex = '某女生';
-						//else if($sex == '1')
-						//	$sex = '某男生';
-						//else
-							$sex = '某人';
-							
-						
-						if(strlen($words) > 0){
-							$nn = $secretIndex  + 1;
-							$contetstr .= "【第 $nn 条】\n";
-							$contetstr .= date('Y-m-d H:i', $ptime)."\n";
-							if(strlen(trim($touser)) == 0) {
-								$contetstr .= "$city $sex 说：\n";
-							}else {
-								$contetstr .= "$city $sex \n对 $touser 说：\n";
-							}
-							$contetstr .= "$words \n";
-							$contetstr .= "-------浏览次数($pcount)\n";
-							
+					if(strlen($words) > 0){
+						$nn = $secretIndex  + 1;
+						$contetstr .= "【第 $nn 条】\n";
+						$contetstr .= date('Y-m-d H:i', $ptime)."\n";
+						if(strlen(trim($touser)) == 0) {
+							$contetstr .= "$city $sex 说：\n";
+						}else {
+							$contetstr .= "$city $sex \n对 $touser 说：\n";
 						}
-						$secretIndex =  $secretIndex + 1; 
-						if(mb_strlen($contetstr,'utf-8') > 350)
-							break;
+						$contetstr .= "$words \n";
+						$contetstr .= "-------浏览次数($pcount)\n";
+							
 					}
+					$secretIndex =  $secretIndex + 1; 
+					if(mb_strlen($contetstr,'utf-8') > 350)
+						break;
 				}
-				$sql = "update users set secretIndex = $secretIndex where user = '$fromuser'"; 
-				$result = mysql_query($sql, $conn); 
+				$sql = "update users set secretIndex = $secretIndex where user = '$fromuser'";
+				$mysqlHelperObj->execute($sql);
 				$c = count($idStack);
 				for($ii = 0; $ii < $c; $ii++){
 					$sql = "update secretwords set pcount = pcount + 1 where id = '".$idStack[$ii]."'"; 
-					$result = mysql_query($sql, $conn);  
+					$mysqlHelperObj->execute($sql);
 				}
 			} 
 		}
@@ -194,56 +158,49 @@ require_once "databaseutil.php";
 	//以名字查看
 	function secret_wordsbyuser($touser){
 		//database connection  		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$contetstr = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'");
-			$secretIndex = 0; 	
-			$sql = "select pcount, secretwords.id as sid, city, sex, touser, words,UNIX_TIMESTAMP(secretwords.ptime) as pptime from secretwords, users where touser like '%$touser%' and users.user= secretwords.user order by secretwords.id desc";
+		$secretIndex = 0; 	
+		$sql = "select pcount, secretwords.id as sid, city, sex, touser, words,UNIX_TIMESTAMP(secretwords.ptime) as pptime from secretwords, users where touser like '%$touser%' and users.user= secretwords.user order by secretwords.id desc";
 			
 		//	$sql = "select city, touser, words, UNIX_TIMESTAMP(ptime) as ptime from secretwords where touser like '%$touser%' order by id desc limit 50";
 			 
-			$result = mysql_query($sql, $conn); 
-			$nn = 0;
-			if($result){
-				$idStack = array();
-				date_default_timezone_set('PRC');
-				while($row = mysql_fetch_array($result)){ 
-					$city = $row['city'];  
-					$sex = $row['sex'];  
-					$touser = $row['touser'];  
-					$words = $row['words']; 
-					$ptime = $row['pptime'];
-					$pcount = intval($row['pcount'])+1; 
-					array_push($idStack, $row['sid']);
-					
-					if($sex == '0')
-							$sex = '某女生';
-						else if($sex == '1')
-							$sex = '某男生';
-						else
-							$sex = '某人';
-							
-					if(strlen($words) > 0){
-						$nn = $nn  + 1;
-						$contetstr .= "【第 $nn 条】\n"; 
-						$contetstr .= date('Y-m-d H:i', $ptime)."\n";
-						$contetstr .= "$city $sex \n对 $touser 说：\n";
-						$contetstr .= "$words \n";
-						$contetstr .= "-------浏览次数($pcount)\n";
-					}
+		$nn = 0;
+		date_default_timezone_set('PRC');
+		$mysqlHelperObj = new mysqlHelper();  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){
+			$len = count($rows);
+			for($i = 0; $i < $len; $i++) { 
+				$row = $rows[$i];
+				$city = $row['city'];  
+				$sex = $row['sex'];  
+				$touser = $row['touser'];  
+				$words = $row['words']; 
+				$ptime = $row['pptime'];
+				$pcount = intval($row['pcount'])+1; 
+				array_push($idStack, $row['sid']);
+				
+				if($sex == '0')
+					$sex = '某女生';
+				else if($sex == '1')
+					$sex = '某男生';
+				else
+					$sex = '某人';
+						
+				if(strlen($words) > 0){
+					$nn = $nn  + 1;
+					$contetstr .= "【第 $nn 条】\n"; 
+					$contetstr .= date('Y-m-d H:i', $ptime)."\n";
+					$contetstr .= "$city $sex \n对 $touser 说：\n";
+					$contetstr .= "$words \n";
+					$contetstr .= "-------浏览次数($pcount)\n";
 				}
-				$c = count($idStack);
-				for($ii = 0; $ii < $c; $ii++){
-					$sql = "update secretwords set pcount = pcount + 1 where id = '".$idStack[$ii]."'"; 
-					$result = mysql_query($sql, $conn);  
-				}
-			}  
+			}
+			$c = count($idStack);
+			for($ii = 0; $ii < $c; $ii++){
+				$sql = "update secretwords set pcount = pcount + 1 where id = '".$idStack[$ii]."'"; 
+				$mysqlHelperObj->execute($sql);
+			}
 		}
 		if(strlen($contetstr) == 0){
 			$contetstr = "还没有发给 $touser 的告白哦~\n快叫$touser 的同学朋友也来关注我吧，兴许他们会对TA说出心里的告白哦~\n ";
@@ -252,35 +209,9 @@ require_once "databaseutil.php";
 	}
 	//插入secret flag
 	function secret_updateflag($fromuser, $flag){ 
-			 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "users"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		
-		$mysqli = mysqli_init();
-		if (!$mysqli) { 			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {  			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 4)) {  			 
-			return '';
-		} 
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {  			 
-			return '';
-		}
-		$result=$mysqli->query("set names 'utf8'");
-		if (!$result) {   
-			return '';
-		}
-		 
 		$sql = "update users set secret_flag = '$flag' where user = '$fromuser'"; 
-		
-		$result=$mysqli->query($sql);
+		$mysqlHelperObj = new mysqlHelper();  
+		$result = $mysqlHelperObj->execute($sql);
 		if (!$result) {  
 			return '';
 		} 
@@ -288,38 +219,13 @@ require_once "databaseutil.php";
 	
 	//查询secret flag
 	function secret_getflag($fromuser){ 
-			 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "users"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		
-		$mysqli = mysqli_init();
-		if (!$mysqli) { 			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {  			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 4)) {  			 
-			return '';
-		} 
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {  			 
-			return '';
-		}
-		$result=$mysqli->query("set names 'utf8'"); 
 		$sql = "select secret_flag from users where user = '$fromuser'"; 
-		$result=$mysqli->query($sql);
-		if($result) {
-			if($row = $result->fetch_object()){ 
-				$secret_flag = $row->secret_flag;  
-				return $secret_flag;
-			}else{
-				d_insertuser($fromuser);
-				return 0;
-			}
+		$mysqlHelperObj = new mysqlHelper();  
+		$value = $mysqlHelperObj->queryValue($sql, "secret_flag");
+		if($value != ""){
+			return $value;
+		}else{
+			d_insertuser($fromuser);
 		} 
 		return 0;
 	}   

@@ -23,7 +23,7 @@ class webchat_secretmsg
 				 
 		if(strlen( $keyword ) > 0)
 		{ 
-			$flag = secret_getflag($fromUsername); 
+			$flag = secret_getflag($fromUsername);
 			if($flag == SECRET_TEXT){
 				secret_inserttext($fromUsername, $keyword);
 				$user = secret_gettouser($fromUsername);
@@ -71,14 +71,26 @@ class webchat_secretmsg
 						$contentStr = "发送成功！\n你的有缘人看到了 一定会联系你的！！\n";
 						$contentStr .= secret_ending();
 						secret_updateflag($fromUsername, 0);
+					}else if(strstr(trim($match[1]),' ') && strpos(trim($match[1]),' ') < 6){
+						$index = strpos(trim($match[1]), ' ');
+                        $touser = substr(trim($match[1]), 0, $index);
+						secret_inserttouser($fromUsername, $touser);
+						secret_inserttext($fromUsername, trim($match[1]));
+						if($touser == '有缘人'){
+							$contentStr = "发送成功！\n你的有缘人看到了 一定会联系你的！！\n";
+						}else{
+							$contentStr = "发送成功！\n如果TA也关注我，\n输入 @".$touser." 就可以看到你的匿名纸条啦。快让身边的人也来吐露心声吧~~\n";
+						}
+						$contentStr .= secret_ending();
+						secret_updateflag($fromUsername, 0);
 					}else if(mb_strlen(trim($match[1]),'utf-8') > 8){
 						$touser = '有缘人';
 						$index = strpos(trim($match[1]), ' ');
-						if($index != null){
+						if($index != null && index < 6){
 							$touser = substr(trim($match[1]), 0, $index);
 						}else{
 							$index = strpos(trim($match[1]), '，');
-							if($index != null){
+							if($index != null && index < 6){
 								$touser = substr(trim($match[1]), 0, $index);
 							} 
 						}

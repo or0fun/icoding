@@ -28,7 +28,7 @@ class webchat_sina
 		}
 		$tmp = str_replace(';', "；\n\n", $tmp);
 		$tmp = str_replace('。', "。\n\n", $tmp);
-		return "【今日头条新闻回顾】\n\n".$tmp;
+		return "【今日头条新闻回顾】\n\n".$tmp."\n\n以'新闻'开头可快速查看相关最新新闻，如输入：\n新闻 昆明";
 	}
 	public function hotweibo(){
 		$curl = curl_init();
@@ -99,3 +99,4 @@ class webchat_sina
 		return $re;
 	}
 }
+?>

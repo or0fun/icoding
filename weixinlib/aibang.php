@@ -1,12 +1,13 @@
-﻿<?php
+<?php
 //$webchat_aibang = new webchat_aibang(); 
-//echo $webchat_aibang->getbustransfer('北京', '大兴','西直门');
+//echo $webchat_aibang->getbustransfer('北京', '大兴','西直门'); 
+  
 class webchat_aibang
 {
 	function gethelp()
 	{
 		return "公交/地铁 线路查询，输入格式：公交 城市 起点 终点\n".
-			"如输入："."\n公交 北京 东直门 西直门";
+			"如输入："."\n公交 北京 东直门 西直门\n或直接打开http://t.cn/8sVU7Ow查询";
 	}
 	function getbustransfer($city, $start_addr, $end_addr)
 	{
@@ -27,7 +28,7 @@ class webchat_aibang
 		$content = curl_exec($ch);   
 		curl_close($ch);   
 		if($content == false)
-			return "Oops!这网速也忒慢啦~请再输入一遍~";
+			return "Oops!这网速也忒慢啦~请再输入一遍~可以直接打开http://baiwanlu.com/t/?p=RQ9查询";
 		$Message = json_decode($content, true);
 		$buses = $Message['buses']['bus'];
 		$c = count($buses);
@@ -55,6 +56,7 @@ class webchat_aibang
 			{
 				$re .= "步行".$buses[$i]['last_foot_dist']."至终点[$end_addr]\n";
 			}
+            $re .= "可以直接打开http://baiwanlu.com/t/?p=RQ9查询";
 		}
 		return $re;
 	}

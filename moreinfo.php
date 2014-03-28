@@ -1,7 +1,7 @@
 ﻿<?php
-$wechat_94qingObj = new wechat_moreInfo();
+//$wechat_94qingObj = new wechat_moreInfo();
 //echo $wechat_94qingObj->getJZW(); 
-echo $wechat_94qingObj->getCTS('我爱你'); 
+//echo $wechat_94qingObj->getCTS('我爱你'); 
 //echo  $wechat_weatherObj->getairbycity('101030100');
 class wechat_moreInfo
 {

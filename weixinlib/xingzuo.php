@@ -44,32 +44,16 @@ class webchat_constellation
 			$xing2 .= "座";
 		}
 		
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "xingzuo"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){
-//			die("failed to connect mysql:" . mysql_error());
-			return "";
-		}  
-		mysql_select_db($database_conn, $conn); 
-		mysql_query("set names 'utf8'");
-		
 		//database operation
-		$sql = "SELECT msg,id FROM $table_comm where (xing2='$xing1' and xing1='$xing2') or (xing1='$xing1' and xing2='$xing2')";  
-		$result = mysql_query($sql, $conn); 
-		if(!$result){   
-			mysql_close($conn);
-			return "";
-		} else {    
-			$row = mysql_fetch_array($result);
+		$sql = "SELECT msg,id FROM xingzuo where (xing2='$xing1' and xing1='$xing2') or (xing1='$xing1' and xing2='$xing2')";  
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
 			$msg = $row['msg'];  
 			$id = $row['id']; 
 			$sql = "update $table_comm set pcount = pcount+1 where id = '$id'";  
-			$result = mysql_query($sql, $conn); 
-			mysql_close($conn);
+			$mysqlHelperObj->execute($sql); 
 			
 			$msg = '【仅供娱乐，祝有情人终成眷属】'.$msg;
 			return $msg;
@@ -431,116 +415,56 @@ class webchat_constellation
 	}
 	
 	public function fromdb($name, $type){
-		//连接
-		$hostname_conn = "mysql1403.ixwebhosting.com"; 
-		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "astrological"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
+		  
 		$msg = '';
-		$mysqli = mysqli_init();
-		if (!$mysqli) {
-			$msg =  '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {
-			$msg =  '';
-		}
-
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 3)) {
-			$msg =  '';
-		}
-
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {
-			$msg =  '';
-		} 
-		$result=$mysqli->query("set names 'utf8'");  
-		$query=""; 
 		date_default_timezone_set('PRC'); 
 		if($type == 'ymsg'){
 			$t = date('Y');
-			$query="SELECT $type as msg FROM astrological where name = '$name' and y ='$t'";  
+			$sql="SELECT $type as msg FROM astrological where name = '$name' and y ='$t'";  
 		}
 		else if($type == 'mmsg'){
 			$t = date('n');
-			$query="SELECT $type as msg FROM astrological where name = '$name' and m ='$t'";  
+			$sql="SELECT $type as msg FROM astrological where name = '$name' and m ='$t'";  
 		}
 		else if($type == 'wmsg'){ 
 			$z = date('z');
 			$t = date('w');
-			$query="SELECT $type as msg FROM astrological where name = '$name' and w < $t  and wd < $z - 7";  
+			$sql="SELECT $type as msg FROM astrological where name = '$name' and w < $t  and wd < $z - 7";  
 		}
 		else if($type == 'dmsg'){
 			$t = date('z');
-			$query="SELECT $type as msg FROM astrological where name = '$name' and d ='$t'";  
+			$sql="SELECT $type as msg FROM astrological where name = '$name' and d ='$t'";  
 		}
-  
-		$result = $mysqli->query($query);
-		if(!$result){    
-			$msg =  "";
-		} else {    
-			$row = $result->fetch_object();
-			if($row){
-				$msg = $row->msg;   
-				return $msg; 
-			}  
-			$msg = "";
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$msg = $row['msg'];
 		}
 		return $msg;
 	}
 	
 	public function insertdb($name, $type, $msg){
-		//连接
-		$hostname_conn = "mysql1403.ixwebhosting.com"; 
-		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "astrological"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";  
-		$mysqli = mysqli_init();
-		if (!$mysqli) {
-			return false;
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {
-			
-			return false;
-		}
-
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 3)) {
-			
-			return false;
-		}
-
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {
-			
-			return false;
-		} 
-		$result=$mysqli->query("set names 'utf8'"); 
-		$query=""; 
 		date_default_timezone_set('PRC'); 
 		if($type == 'ymsg'){
 			$t = date('Y');
-			$query="update astrological set $type = '$msg', y='$t' where name = '$name'"; 
+			$sql="update astrological set $type = '$msg', y='$t' where name = '$name'"; 
 		}
 		else if($type == 'mmsg'){
 			$t = date('n');
-			$query="update astrological set $type = '$msg', m='$t' where name = '$name'"; 
+			$sql="update astrological set $type = '$msg', m='$t' where name = '$name'"; 
 		}
 		else if($type == 'wmsg'){ 
 			$z = date('z');
 			$t = date('w');
-			$query="update astrological set $type = '$msg', w='$t', wd='$z' where name = '$name'"; 
+			$sql="update astrological set $type = '$msg', w='$t', wd='$z' where name = '$name'"; 
 		}
 		else if($type == 'dmsg'){
 			$t = date('z');
-			$query="update astrological set $type = '$msg', d='$t' where name = '$name'"; 
+			$sql="update astrological set $type = '$msg', d='$t' where name = '$name'"; 
 		}
-		$result = $mysqli->query($query);
-		if(!$result){    
-			
-			return false;
-		}  
-		return true;
+		$mysqlHelperObj = new mysqlHelper();
+		return $mysqlHelperObj->execute($sqlstr);
 	}
 }
 ?>

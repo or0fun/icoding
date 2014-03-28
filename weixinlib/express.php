@@ -95,7 +95,8 @@ class webchat_express{
 	  'quanritong' => '全日通快递',
 	  'quanyi' => '全一快递',
 	  'rpx' => 'RPX保时达',
-	  'rufeng' => '如风达快递',
+      'rufeng' => '如风达快递',
+      'rufeng' => '凡客快递',
 	  'saiaodi' => '赛澳递',
 	  'santai' => '三态速递',
 	  'scs' => '伟邦(SCS)快递',
@@ -211,29 +212,15 @@ class webchat_express{
 			return "此单号无记录，请核对快递公司名称和运单号码是否正确!\n也可能刚寄出还未录入.\n";
 			//return 'SORRY,无此运单跟踪记录!请确认单号输入正确。';
 		}
-	} 
-	//kuaidi100
-	//huitongkuaidi
-	//shentong
-	//yuantong
-	//tiantian
-	//zhongtong
-	//shunfeng
-	//zhaijisong
-	//rufengda   凡客
-	//lianbangkuaidi  联邦快递
-	//suer   速尔
-	//ups
-	//quanfengkuaidi
-	//yunda
+	}
 	public function help(){
 		$re = "目前支持的快递查询有\n";
 		$kuaidiArray = array('优速','顺丰','申通','汇通','凡客','速尔','联邦','中通','天天','圆通','UPS','EMS','全峰','韵达','宅急送','国通');
-		foreach($kuaidiArray as $k){
-			$re .= $k;
+		foreach($kuaidiArray as $value){
+			$re .= $value;
 			$re .= "\n";
 		}
-		$re .= "请在相应快递后面加上单号，如输入：\n顺丰 028376220863";
+		$re .= "如需其他快递查询请告知，竭诚为您添加。\n请在相应快递后面加上单号，如输入：\n顺丰 028376220863";
 		return $re;
 	}
 	
@@ -349,7 +336,7 @@ class webchat_express{
 				.'[查询结果来自 '.$company.' 官网]';
             }
 		}else{			
-			return "";
+			return "暂不支持 "." ".$company;
 		}
 		
 	}

@@ -1,5 +1,5 @@
 ﻿<?php
-$wechat_weatherObj = new wechat_weather();
+//$wechat_weatherObj = new wechat_weather();
 //echo $wechat_weatherObj->getweatherbycode('101030100'); 
 //echo  $wechat_weatherObj->getairbycity('101030100');
 class wechat_weather
@@ -22,14 +22,14 @@ class wechat_weather
 		}else{
 			//$contentStr = $weather."\nhttp://baiwanlu.com/w.htm";
 			$weather = str_replace("转", " 转 ", $weather);
-			$weather = str_replace("晴", "☀", $weather);
-			$weather = str_replace("雪", "⛄", $weather);
-			$weather = str_replace("多云", "☁", $weather);
-			$weather = str_replace("阴", "☁", $weather);
-			$weather = str_replace("雨", "☔", $weather);
+			$weather = str_replace("晴", "晴☀", $weather);
+			$weather = str_replace("雪", "雪⛄", $weather);
+			$weather = str_replace("多云", "多云☁", $weather);
+			$weather = str_replace("阴", "阴☁", $weather);
+			$weather = str_replace("雨", "雨☔", $weather);
 			$contentStr = $weather;//."\n\n发送位置就可以查天气";
 		} 
-		$contentStr .= "\n\n-------------\n查空气，如输入:\n杭州空气";
+		$contentStr .= "\n\n-------------\n查空气质量，如输入:\n".$cityname."空气";
 		return $contentStr;
 		
 	}
@@ -140,162 +140,72 @@ class wechat_weather
 	}
 	
 	public function getcodebylocation($label,$Location_X, $Location_Y){  
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "cities"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);	 
-			mysql_query("set names 'utf8'");
-			if(preg_match('/市(.*)县/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
+		if(preg_match('/市(.*)县/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
 					$cityname .= '县';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			}
-			if(preg_match('/市(.*)区/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
-					$cityname .= '区';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			if(preg_match('/市(.*)市/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
-					$cityname .= '市';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			if(preg_match('/区(.*)市/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
-					$cityname .= '市';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			if(preg_match('/省(.*)市/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
-					$cityname .= '市';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			if(preg_match('/国(.*)市/',$label,$result)){
-				$cityname = $result['1'];
-				if(mb_strlen($cityname,'utf-8') == 1)
-					$cityname .= '市';
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			if(preg_match('/区(.*)$/',$label,$result)){
-				$cityname = $result['1'];
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($result = mysql_query($sql,$conn)){
-					if($row = mysql_fetch_array($result)){
-						$code = $row["code"];
-						mysql_close($conn);
-						return $code;
-					} 
-				}
-			} 
-			$cityname = g_getcityname($Location_X, $Location_Y);
-			if($result = mysql_query($sql,$conn)){
-				$sql = "select code from $table_comm where city like '%$cityname%'"; 
-				if($row = mysql_fetch_array($result)){
-					$code = $row["code"];
-					mysql_close($conn);
-						return $code;
-				} 
-			} 
-			mysql_close($conn);
+			return $this->getcode($cityname);
 		}
-		return 0;
+		if(preg_match('/市(.*)区/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
+				$cityname .= '区';
+			return $this->getcode($cityname);
+		} 
+		if(preg_match('/市(.*)市/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
+				$cityname .= '市';
+			return $this->getcode($cityname);
+		} 
+		if(preg_match('/区(.*)市/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
+				$cityname .= '市';
+			return $this->getcode($cityname);
+		} 
+		if(preg_match('/省(.*)市/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
+				$cityname .= '市';
+			return $this->getcode($cityname);
+		} 
+		if(preg_match('/国(.*)市/',$label,$result)){
+			$cityname = $result['1'];
+			if(mb_strlen($cityname,'utf-8') == 1)
+				$cityname .= '市';
+			return $this->getcode($cityname);
+		} 
+		if(preg_match('/区(.*)$/',$label,$result)){
+			$cityname = $result['1'];
+			return $this->getcode($cityname);
+		} 
+		$cityname = g_getcityname($Location_X, $Location_Y);
+		return $this->getcode($cityname);
 	}
 	
 	public function getcode($cityname){  
 	 
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "cities"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";  
+		$mysqlHelperObj = new mysqlHelper();
 		$cityname = str_replace("+","",trim($cityname));
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);	 
-			mysql_query("set names 'utf8'");
-			$sql = "select code from $table_comm where city = '$cityname'";  
-			if($result = mysql_query($sql,$conn)){
-				if($row = mysql_fetch_array($result)){
-					$code = $row["code"]; 
-					mysql_close($conn);
-					return $code;
-				} 
-			}
-			mysql_close($conn);
+		$sql = "select code from cities where city like '%$cityname%'";  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$code = $row["code"];				
+			return $code;
 		}
 		return "";
 	}
 	
 	public function getcodebyuser($fromuser){  
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "cities"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);	 
-			mysql_query("set names 'utf8'"); 
-			$sql = "select code from $table_comm where city in (select city from users where user='$fromuser')";  
-			if($result = mysql_query($sql,$conn)){
-				if($row = mysql_fetch_array($result)){
-					$code = $row["code"];
-					mysql_close($conn);
-					return $code;
-				} 
-			}
-			mysql_close($conn);
+		$sql = "select code from cities where city in (select city from users where user='$fromuser')";  
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$code = $row["code"];				
+			return $code;
 		}
 		return "";
 	}
@@ -326,7 +236,76 @@ class wechat_weather
 		}    
 		return $this->getweatherbycode($code);
 	}
-	 
+	public function getweatherFromthinkpage($code){
+		$thinkpage_weather_air_level = array('优','良','轻度污染','中度污染','重度污染','严重污染');
+		$thinkpage_weather_air_info = json_decode('[
+        {
+            "impact":"空气质量令人满意，基本无空气污染",
+            "suggestion":"各类人群可正常活动"
+        },
+        {
+            "impact":"空气质量可接受，但某些污染物可能对极少数异常敏感人群健康有较弱影响",
+            "suggestion":"极少数异常敏感人群应减少户外活动"
+        },
+        {
+            "impact":"易感人群症状有轻度加剧，健康人群出现刺激症状",
+            "suggestion":"儿童、老年人及心脏病、呼吸系统疾病患者应减少长时间、高强度的户外锻炼"
+        },
+        {
+            "impact":"进一步加剧易感人群症状，可能对健康人群心脏、呼吸系统有影响",
+            "suggestion":"儿童、老年人及心脏病、呼吸系统疾病患者避免长时间、高强度的户外锻炼，一般人群适量减少户外运动"
+        },
+        {
+            "impact":"心脏病和肺病患者症状显著加剧，运动耐受力降低，健康人群普遍出现症状",
+            "suggestion":"儿童、老年人及心脏病、肺病患者应停留在室内，停止户外运动，一般人群减少户外运动"
+        },
+        {
+            "impact":"健康人群运动耐受力降低，有明显强烈症状，提前出现某些疾病",
+            "suggestion":"儿童、老年人和病人应停留在室内，避免体力消耗，一般人群避免户外活动"
+        }
+		]',true);
+	
+		$curl = curl_init();
+		curl_setopt($curl, CURLOPT_URL, 'http://api.thinkpage.cn/weather/api.svc/getWeather?city='.$code.'&language=zh-chs&unit=c&aqi=city&format=json&key=CERZTIZCZ3');
+		curl_setopt($curl, CURLOPT_HEADER, 0);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($curl, CURLOPT_TIMEOUT, 3);
+		$data = curl_exec($curl);
+		curl_close($curl);
+		if($data == false)
+			return "Oops!这破网太慢啦，请再试一遍~"; 
+		$Message = json_decode($data, true);
+		$re = '';
+		if($Message['Stat'] == 'OK'){
+			$re .= $Message['Weathers'][0]['CityName']."\n";
+			$re .= "更新时间\n".$Message['Weathers'][0]['AirQuality']['CityInfo']['Time']."\n";
+			$quality = $Message['Weathers'][0]['AirQuality']['CityInfo']['Quality'];
+			$re .= "【空气质量指数】\n".$Message['Weathers'][0]['AirQuality']['CityInfo']['AQI']." ".$quality."\n";
+			for($i = 0; $i < 6; $i++){
+				if($quality == $thinkpage_weather_air_level[$i]){
+					$re .= $thinkpage_weather_air_info[$i]['impact']."。";
+					$re .= "建议".$thinkpage_weather_air_info[$i]['suggestion']."。";;
+				}
+			}
+			$re .= "\n";
+			$re .= "【当前实况】\n";
+			$re .= $Message['Weathers'][0]['Current']['Text'].",气温".$Message['Weathers'][0]['Current']['Temperature'].",湿度".$Message['Weathers'][0]['Current']['Humidity']."\n";
+			$re .= "【今天天气】\n";
+			$re .= $Message['Weathers'][0]['Forecast'][0]['Day']." ".
+			$Message['Weathers'][0]['Forecast'][0]['Text']." ".
+			$Message['Weathers'][0]['Forecast'][0]['Low']."°~".
+			$Message['Weathers'][0]['Forecast'][0]['High']."° \n";
+			$re .= "【未来天气】\n";
+			for($i = 1;$i < 10;$i++){
+				$re .= $Message['Weathers'][0]['Forecast'][$i]['Day']." ".
+				$Message['Weathers'][0]['Forecast'][$i]['Text']." ".
+				$Message['Weathers'][0]['Forecast'][$i]['Low']."°~".
+				$Message['Weathers'][0]['Forecast'][$i]['High']."° \n";
+			}
+			return $re;
+		}
+		return '网络错误，请稍后再试。';
+	}	
 	public function getweatherbycode($code){
 		$capitals = array("101010100"/*北京*/,"101030100"/*天津*/,"101210101"/*杭州*/,"101020100"/*上海*/,
 		"101200101"/*武汉*/,"101090101"/*石家庄*/,"101060101"/*长春*/,"101070201"/*大连*/,"101230201"/*厦门*/,
@@ -345,19 +324,13 @@ class wechat_weather
 		{	 
 			return "";
 		}    		
-		// 初始化一个 cURL 对象  
+		//return $this->getweatherFromthinkpage($code);
 		$curl = curl_init();
-		// 设置你需要抓取的URL 
 		curl_setopt($curl, CURLOPT_URL, 'http://m.weather.com.cn/data/'.$code.'.html');
-		// 设置header
 		curl_setopt($curl, CURLOPT_HEADER, 0);
-		// 设置cURL 参数，要求结果保存到字符串中还是输出到屏幕上。
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		// 设置cURL 参数，时间超时
 		curl_setopt($curl, CURLOPT_TIMEOUT, 3);
-		// 运行cURL，请求网页
 		$data = curl_exec($curl);
-		// 关闭URL请求
 		curl_close($curl);
 		if($data == false)
 			return "Oops!这破网太慢啦，请再试一遍~"; 
@@ -426,37 +399,15 @@ class wechat_weather
 	}
 	
 	public function getCitypinyin($city){
-		//连接
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "cityair"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
 		
-		$mysqli = mysqli_init();
-		if (!$mysqli) {
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {
-			return '';
-		}
-
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 0)) {
-			return '';
-		}
-
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {
-			return '';
-		} 
-		$result=$mysqli->query("set names 'utf8'");
-		$query="select pinyin from cityair where city='$city'";
-		$result = $mysqli->query($query);
-		if (!$result) {
-			return '';
-		} 
-		while($row = $result->fetch_object( )) {
-			return $row->pinyin;
+		
+		
+		$sql="select pinyin from cityair where city='$city'";
+		$mysqlHelperObj = new mysqlHelper();  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			return $row['pinyin'];
 		}
 		return "";
 		
@@ -469,67 +420,23 @@ class wechat_weather
 		if(strlen($pinyin) == 0){
 			return 'Sorry.暂时没有城市'.$city.'的空气数据。请试试其他城市。';
 		}
+		$url = 'http://www.pm25.in/'.$pinyin;
  		$curl = curl_init();
-		// 设置你需要抓取的URL 
-		curl_setopt($curl, CURLOPT_URL, 'http://m.pm2d5.com/pm/'.$pinyin.'.html');//http://192.168.11.2:9055/httpproxy/id=1359957010
-		// 设置header
+		curl_setopt($curl, CURLOPT_URL, $url );//www.pm25.in/hangzhou
 		curl_setopt($curl, CURLOPT_HEADER, 0);
-		// 设置cURL 参数，要求结果保存到字符串中还是输出到屏幕上。
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		// 设置cURL 参数，时间超时
 		curl_setopt($curl, CURLOPT_TIMEOUT, 4);
-		// 运行cURL，请求网页
 		$data = curl_exec($curl);
-		// 关闭URL请求
 		curl_close($curl);  
 		if($data == false)
 			return "Oops!这破网太慢啦，请再试一遍~";
   
-		$result = '';
-		$index = strpos($data, '<strong>');
-		$index2 = strpos($data, '</strong>', $index);
-		$title = substr($data, $index + 8, $index2 - $index - 8);  
-		
-		$index = strpos($data, '首要污染物', $index2);
-		$index2 = strpos($data, '<font', $index);
-		$aqi = '';
-		if ($index !== false){
-			$aqi = substr($data, $index, $index2 - $index); 
-			$aqi = str_replace('<br />', "\n", $aqi); 
-			$aqi = str_replace('&nbsp;', "\n", $aqi); 
-		}
-		 
-		$index = strpos($data, '更新：', $index2);
-		$index2 = strpos($data, '<', $index);
-		$updatetime = substr($data, $index, $index2 - $index); 
-		
-		$result .= $title."\n".$aqi."\n".$updatetime."\n";
-		$words = array('各监测站点实时数据', '最近一周空气质量指数' );
-		$i = 0;
-		while(strstr($data, '<ul class="list2">')){
-			$index = strpos($data, '<ul class="list2">');
-			$index2 = strpos($data, '</ul>', $index);
-			$list = substr($data, $index, $index2 - $index);		
-			$data = substr($data, $index2);
-			
-			$station = $words[$i]."\n";
-			while(strstr($list, '<li class="clear">')){ 
-				$index = strpos($list, '<li class="clear">');
-				$index2 = strpos($list, '</li>', $index);
-				$tmp = substr($list, $index, $index2-$index);
-				$list = substr($list, $index2); 
-			  
-				while(strstr($tmp, '<')){
-					$index = strpos($tmp, '<'); 
-					$index2 = strpos($tmp, '>', $index);  
-					$tmp = substr($tmp, 0, $index).substr($tmp, $index2 + 1); 
-				}
-				$station .= $tmp;
-				$station .= "\n"; 
-			}   
-			$result .= $station."\n";
-			$i++; 
-		}
+		$index = strpos($data, "title: '");
+		$index2 = strpos($data, "'", $index + 10 );
+		$result = substr($data, $index + 8, $index2 - $index - 8).$url;
+		$result = str_replace('  ',"\n",$result)."\n\n";
+        $result = str_replace('AQI',"空气质量指数",$result);
+        $result = str_replace('建议采取措施',"温馨提示",$result);
 		 
 		return $result; 
 	}

@@ -1,4 +1,4 @@
-﻿<?php 
+<?php 
 
 require_once 'repeat.php';
  
@@ -26,10 +26,7 @@ class webchat_textmsg
 				$contentStr = "搜索微信号 ie8384  就可以啦\n还可以直接把我的名片发给你的好友，步骤如下:\n".
 				"1.点击右上角按钮，显示出iCoding的详细资料\n".
 				"2.再点击右上角按钮，选择 推荐给朋友\n".
-				"3.再选择你的朋友就好了";
-			}
-			else if(strstr($keyword, '你是人') || strstr($keyword, '机器人') || strstr($keyword, '你是真人')) {
-				$contentStr = "对，我不是人，可是我主人是人，想和ta聊吗？留下你的联系方式，我会转告ta的。真心的。";
+				"3.再选择你的朋友就好了\n 如有需要可以加我主人的私人微信love_icoding";
 			}
 			else if (strstr(strtolower($keyword), 'icoding')){	 	 
 				$contentStr = "i就是爱，coding就是编程的意思，所以爱编程，也爱你，这就是我iCoding。只想好好为你服务...\n\n";
@@ -37,7 +34,7 @@ class webchat_textmsg
 				$contentStr .= "让你朋友搜索微信号 ie8384  就可以关注我啦\n还可以直接把我的名片发给你的好友，步骤如下:\n".
 				"1.点击右上角按钮，显示出iCoding的详细资料\n".
 				"2.再点击右上角按钮，选择 推荐给朋友\n".
-				"3.再选择你的朋友就好了";				
+				"3.再选择你的朋友就好了\n 如有需要可以加我主人的私人微信love_icoding";
 				$ctype = 'icoding';
 			} 
 			//帮助
@@ -72,12 +69,13 @@ class webchat_textmsg
 			}	
 			//笑话
 			else if($keyword == 'x' || $keyword == 'X'){
-				$contentStr = data_getjoke($fromUsername).getending(); 
+				$contentStr = data_getjoke($fromUsername); 
+				$ctype = 'joke';
 			}
 			//十万个为什么
 			else if(strtolower($keyword) == 'w')
 			{  
-					$contentStr = "【科普知识】\n".data_getkepu()."\n\n再来一条回复w".getending();
+					$contentStr = "【科普知识】\n".data_getkepu()."\n\n再来一条回复w";
 					$ctype = 'kepu';
 			}
 			//详情
@@ -118,11 +116,10 @@ class webchat_textmsg
 				$ctype = 'poi'; 
 			}
 			//next 下一首
-			else if($keyword == 'd' || $keyword == 'D'){ 
+		/*	else if($keyword == 'd' || $keyword == 'D'){ 
 				list($song, $singer, $songPage) = d_getvalues_3($fromUsername, 'song', 'singer', 'songPage');
 				if(strlen($song) == 0)
-					$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，或者以*号隔开歌手和歌曲，如输入：\n"
-					."点歌 五月天*天使\n点歌  单身情歌\n点歌随机\n\n如果不能播放，获取下一首请回复d";
+					$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，如输入:\n点歌 突然好想你";
 				else{					 
 					$webchat_lyricObj = new webchat_lyric();
 					if(strlen($singer) == 0){
@@ -135,23 +132,23 @@ class webchat_textmsg
 						$ctype = 'music';
 					}
 				} 
-			}						
-			/////////////////////////////////////////////////////////////weibo
-			else if( $keyword == '5' )
-			{ 
-				$webchat_sinaObject = new webchat_sina(); 
-				$contentStr = $webchat_sinaObject->hotweibo();	
-				$ctype = 'weibo';
-			}
+			}	*/
+
 			/////////////////////////////////////////////////////////////头条新闻
-			else if($keyword == '4')
+			else if($keyword == '2')
 			{ 
 				$webchat_sinaObject = new webchat_sina(); 
 				$contentStr = $webchat_sinaObject->hotnews();	
 				$ctype = 'hotnews';
 			}
+			/////////////////////////////////////////////////////////////每日一条
+		//	else if($keyword == '13')
+		//	{
+		//		$contentStr = "点击右上角按钮，\n弹出界面后，\n再点击'查看历史消息'";
+		//		$ctype = 'joke';
+		//	}
 			/////////////////////////////////////////////////////////////笑话
-			else if($keyword == '13')
+			else if($keyword == '10')
 			{ 
 				$contentStr = data_getjoke($fromUsername); 
 				$contentStr .= "\n【再来一个，请回复x】";
@@ -171,44 +168,22 @@ class webchat_textmsg
 				$webchat_wikiObj = new webchat_wiki();
 				$contentStr = $webchat_wikiObj->gettoday();
 				$ctype = 'today'; 
-			}  
-			///////////////////////////////////////////////////////点歌
-			else if(preg_match("/^点歌(.*)\*(.*)$/", trim($keyword), $match) ||
-				preg_match("/^点播(.*)\*(.*)$/", trim($keyword), $match)
-			){
-				if(strlen(trim($match[2])) == 0 ){ 
-					$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，或者以*号隔开歌曲和歌手，如输入：\n"
-					."点歌 天使*五月天\n点歌  单身情歌\n点歌随机\n\n播放时需要时间缓冲请等待，如果不能播放，获取下一首请回复d";
-				}else if(strlen(trim($match[1])) == 0){
-					$webchat_lyricObj = new webchat_lyric();
-					$contentStr = $webchat_lyricObj->bysong(trim($match[1]), 0);
-					if(!strstr($contentStr, '找不到歌曲')){
-						d_setvalues_3($fromUsername, 'song', trim($match[1]), 'singer', '', 'songPage', 2);
-						$ctype = 'music';
-					}
-				}else{
-					$webchat_lyricObj = new webchat_lyric();
-					$contentStr = $webchat_lyricObj->bysongsinger(trim($match[1]),trim($match[2]), 0); 
-					if(!strstr($contentStr, '找不到歌曲')){
-						d_setvalues_3($fromUsername, 'song', trim($match[1]),'singer', trim($match[2]), 'songPage', 2);
-						$ctype = 'music';
-					}
-				}				
 			}
 			else if(preg_match("/^点歌(.*)$/", trim($keyword), $match) ||
-					preg_match("/^点播(.*)$/", trim($keyword), $match)  
+					preg_match("/^点播(.*)$/", trim($keyword), $match) ||
+					preg_match("/^歌曲(.*)$/", trim($keyword), $match)  
 			){
-				if(strlen(trim($match[1])) == 0){ 
-					$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，或者以*号隔开歌曲和歌手，如输入：\n"
-					."点歌 天使*五月天\n点歌  单身情歌\n点歌随机\n\n播放时需要时间缓冲请等待，如果不能播放，获取下一首请回复d";
-				}else{
-					$webchat_lyricObj = new webchat_lyric();
-					$contentStr = $webchat_lyricObj->bysong(trim($match[1]), 0);
-					if(!strstr($contentStr, '找不到歌曲')){
-						d_setvalues_3($fromUsername, 'song', trim($match[1]), 'singer', '', 'songPage', 2);
-						$ctype = 'music';
-					}
-				} 
+				$contentStr = "暂不支持功能。";
+					//$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，如输入:\n点歌 突然好想你";
+			//	if(strlen(trim($match[1])) == 0){ 
+			//		$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，如输入:\n点歌 突然好想你";
+			//	}else{
+			//		$webchat_lyricObj = new webchat_lyric();
+			//		$contentStr = $webchat_lyricObj->getWXSong(trim($match[1]));
+			//		if(!strstr($contentStr, '找不到歌曲')){
+			//			$ctype = 'music';
+			//		}
+			//	} 
 			}
 			///////////////////////////////////////////////////////添加笑话 
 			else if( preg_match("/^aaaaa([\s\S]+)$/", trim($keyword), $match)
@@ -245,8 +220,12 @@ class webchat_textmsg
 					preg_match("/^:(.*)$/", trim($keyword), $match) ||
 					preg_match("/^：(.*)$/", trim($keyword), $match)
 			){
-				$webchat_youdaoObj = new webchat_youdao();
-				$contentStr = $webchat_youdaoObj->gettranslation(trim($match[1])); 				 
+                if(strlen(trim($match[1])) > 50) {
+                    $contentStr = "太长了，请一句一句来～";
+                }else{
+                    $webchat_youdaoObj = new webchat_youdao();
+                    $contentStr = $webchat_youdaoObj->gettranslation(trim($match[1]));
+                 }
 				$ctype = 'translation';
 			}
 			///////////////////////////////////////////////////////资料 
@@ -273,7 +252,20 @@ class webchat_textmsg
 				$webchat_expressObject = new webchat_express(); 
 				$contentStr =  $webchat_expressObject->kuaidi100(trim($match[2]), trim($match[1]));
 				$ctype = 'express';
-			}			 
+			}
+			else if(preg_match("/凡客[^0-9]*([0-9]+)/", trim($keyword), $match) ||
+                    preg_match("/^([0-9]+)[^0-9]*凡客$/", trim($keyword), $match)){
+				$webchat_expressObject = new webchat_express();
+				$contentStr =  $webchat_expressObject->kuaidi100(trim($match[1]), '凡客');
+				$ctype = 'express';
+			}
+			else if(preg_match("/如风达[^0-9]*([0-9]+)/", trim($keyword), $match) ||
+                    preg_match("/^([0-9]+)[^0-9]*如风达$/", trim($keyword), $match)){
+				$webchat_expressObject = new webchat_express();
+				$contentStr =  $webchat_expressObject->kuaidi100(trim($match[1]), '凡客');
+				$ctype = 'express';
+			}
+
 			else if(preg_match("/顺丰[^0-9]*([0-9]+)/", trim($keyword), $match) || 
 			preg_match("/^([0-9]+)[^0-9]*顺丰$/", trim($keyword), $match)){						
 				$webchat_expressObject = new webchat_express(); 
@@ -424,10 +416,9 @@ class webchat_textmsg
 					$contentStr = $webchat_wikiObj->getwiki($searchwords, TRUE); 
 				}
 				$ctype = 'baike'; 
-			} //////////////////////////////////////////////////////百科
-			else if( 
-					preg_match("/^\?(.*)$/", trim($keyword), $match) ||
-					preg_match("/^？(.*)$/", trim($keyword), $match)  ||
+			}
+            //////////////////////////////////////////////////////百科
+			else if(
 					preg_match("/^请问(.*)$/", trim($keyword), $match) 
 			)
 			{  
@@ -435,26 +426,29 @@ class webchat_textmsg
 				if(strlen($searchwords)==0){
 					$contentStr = "在问号？后面加上名词，就可以得到这个名词解释了，比如：？爱情";
 				}else{
-				//	$webchat_wikiObj = new webchat_wiki();
-				//	$contentStr = $webchat_wikiObj->getwiki($searchwords, FALSE);
-				//	if(!strstr($contentStr, "试试回复"))
-				//		$contentStr .= "\n\n----------\n了解更多回复：\n百科 $searchwords ";
-				//	if(mb_strlen($searchwords,'utf-8') > 5){ 
-						$searchwords = trim($match[1]);
-						$webchat_baiduObj = new webchat_baidu();
-						$contentStr = $webchat_baiduObj->getzhidao($searchwords, $fromUsername, 1);  
-						if(strlen($contentStr) == 0)
-							$contentStr = "我也不知道哦...要不你说的简单点？\n O(∩_∩)O哈哈哈~";
-						$ctype = 'zhidao';
-				/*	}else{
-						$webchat_baiduObj = new webchat_baidu();
-						$contentStr = $webchat_baiduObj->getbaike($searchwords, $fromUsername); 
-						$ctype = 'baike';  
-						if(strlen($contentStr) == 0)
-							$contentStr = "我也不知道哦...要不你说的简单点？\n------------\n试试输入：\n提问 $searchwords ";
-					}*/
+                    $webchat_baiduObj = new webchat_baidu();
+                    $contentStr = $webchat_baiduObj->getzhidao($searchwords, $fromUsername, 1);
+                    if(strlen($contentStr) == 0)
+                        $contentStr = "我也不知道哦...要不你说的简单点？\n O(∩_∩)O哈哈哈~";
+                    $ctype = 'zhidao';
 				}
-			} 
+			}
+            else if(
+                    strstr(trim($keyword), "?") || strstr(trim($keyword), "？")
+            ){
+                $searchwords = str_replace("?", "", trim($keyword));
+                $searchwords = str_replace("？", "", trim($keyword));
+				if(strlen($searchwords)==0){
+					$contentStr = "在问号？后面加上名词，就可以得到这个名词解释了，比如：？爱情";
+				}else{
+                    $webchat_baiduObj = new webchat_baidu();
+                    $contentStr = $webchat_baiduObj->getzhidao($searchwords, $fromUsername, 1);
+                    if(strlen($contentStr) == 0)
+                        $contentStr = "我也不知道哦...要不你说的简单点？\n O(∩_∩)O哈哈哈~";
+                    $ctype = 'zhidao';
+				}
+
+            }
 			//////////////////////////////////////////////////////////////解梦
 			else if(preg_match("/解梦(.*)$/", trim($keyword), $match) ||
 					preg_match("/梦见(.*)$/", trim($keyword), $match) ||
@@ -534,7 +528,7 @@ class webchat_textmsg
 				$ctype = 'train';
 			} 
 			//含有动车 火车 高铁
-			else if(strstr($keyword, '火车') || strstr($keyword, '动车') || strstr($keyword, '高铁')){ 
+			else if(strstr($keyword, '火车') || strstr($keyword, '动车') || strstr($keyword, '高铁') || strstr($keyword, '列车')){ 
 				$contentStr = 
 				"【列车车次查询】\n输入车次，如：T31\n".
 				"【列车站站查询】\n输入格式如下：\n火车 上海 杭州\n";
@@ -543,6 +537,7 @@ class webchat_textmsg
 			////////////////////////////////////////////////////////////空气
 			else if(strstr($keyword, '空气'))
 			{	
+				$keyword = str_replace('质量', '', $keyword);
 				$wechat_weatherObj = new wechat_weather();
 				$contentStr = $wechat_weatherObj->getair($keyword);  
 				$ctype = 'air';
@@ -585,56 +580,7 @@ class webchat_textmsg
 				$wechat_weatherObj = new wechat_weather();
 				$contentStr = $wechat_weatherObj->getweather($fromUsername, $keyword); 
 				$ctype = 'weather';
-			}   
-			///////////////////////////////////////////////////////每日一条
-			else if(preg_match("/^每日一条.*([0-9]{4}-[0-9]{2}-[0-9]{1,2})$/", trim($keyword), $match)){ 
-				$contentStr = d_getonestrBydate($match[1]);   
-				if ($contentStr == ''){
-					$contentStr = "找不到你要的\n"
-					."以下随机挑选以往的一条\n\n"
-					.d_getonestr();
-				}
-				$ctype = 'one';
-			} 
-			else if(preg_match("/^每日一条.*([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})$/", trim($keyword), $match)){ 
-				$date = $match[1].'-';
-				if (strlen($match[2]) == 1){
-					$date .= '0'.$match[2].'-';
-				}else {
-					$date .= $match[2].'-';
-				}
-				if (strlen($match[3]) == 1){
-					$date .= '0'.$match[3];
-				}else {
-					$date .= $match[3];
-				}
-				$contentStr = d_getonestrBydate($date);   
-				if ($contentStr == ''){
-					$contentStr = "找不到你要的\n"
-					."以下随机挑选以往的一条\n\n"
-					.d_getonestr();
-				}
-				$ctype = 'one';
-			} 
-			else if(preg_match("/^每日一条(.*)$/", trim($keyword), $match)){ 
-				if (strlen(trim($match[1])) == 0)
-				{		 
-					$contentStr = "每天21时-22时左右发送\n"
-						."以下随机挑选以往的一条\n\n"
-						.d_getonestr();
-					$ctype = 'one';
-				}
-				else
-				{
-					$contentStr = d_getonestrBywords(trim($match[1]));  
-					if ($contentStr == ''){
-						$contentStr = "找不到你要的\n"
-						."以下随机挑选以往的一条\n\n"
-						.d_getonestr();
-					}
-					$ctype = 'one';
-				}
-			} 
+			}
 			else if(strstr($keyword, '每日一条') ||
 					strstr($keyword, '每天一条') ||
 					strstr($keyword, '再来一条')||
@@ -642,11 +588,10 @@ class webchat_textmsg
 					strstr($keyword, '励志')||
 					strstr($keyword, '好文章')
 			)
-			{						 
-				$contentStr = "每天21时-22时左右发送\n"
-				."以下随机挑选以往的一条\n\n"
-				.d_getonestr();
-				$ctype = 'one';
+			{
+                $contentStr = "每天21时-22时左右发送\n"."点击右上角按钮，\n弹出界面后，\n再点击'查看历史消息',可查看以往发送的文章";
+                $ctype = 'one';
+
 			}   
 			//人品
 			else if(preg_match("/^(.*)人品(.*)$/", trim($keyword), $match)){  
@@ -679,11 +624,34 @@ class webchat_textmsg
 				
 				$ctype = 'myself';  
 			}
-			else if(strstr($keyword, '主人')&&strstr($keyword, '你'))
+			else if(strstr($keyword, '主人'))
 			{
-				$contentStr = '你说我主人吗？他还没有女朋友呢，你给他介绍一个呗~'; 
+				//$contentStr = "想要人工聊天吗？\n如果你是女生，请加qq2028088627;\n如果你是男生，请加qq2970216773。\niCoding客服随时陪你聊天";
+				$contentStr = '如有需要可以加我主人的私人微信love_icoding';
 				$ctype = 'zhuren';
-			} 
+			}
+			else if(strstr($keyword, '自动回复'))
+			{
+				//$contentStr = "想要人工聊天吗？\n如果你是女生，请加qq2028088627;\n如果你是男生，请加qq2970216773。\niCoding客服随时陪你聊天";
+				$contentStr = '如有需要可以加我主人的私人微信love_icoding';
+
+				$ctype = 'zhuren';
+			}
+			else if(strstr($keyword, '机器回复'))
+			{
+				//$contentStr = "想要人工聊天吗？\n如果你是女生，请加qq2028088627;\n如果你是男生，请加qq2970216773。\niCoding客服随时陪你聊天";
+				$contentStr = '如有需要可以加我主人的私人微信love_icoding';
+
+				$ctype = 'zhuren';
+			}
+			else if(strstr($keyword, '聊天'))
+			{
+				//$contentStr = "想要人工聊天吗？\n如果你是女生，请加qq2028088627;\n如果你是男生，请加qq2970216773。\niCoding客服随时陪你聊天";
+				$contentStr = '如有需要可以加我主人的私人微信love_icoding';
+
+				$ctype = 'zhuren';
+			}
+
 			else if(strstr($keyword, '方军') || strstr($keyword, 'fangjun'))
 			{
 				$contentStr = '你说我主人吗？他还没有女朋友呢，你给他介绍一个呗~'; 
@@ -879,24 +847,8 @@ class webchat_textmsg
 			else if(strstr($keyword, '听歌')|| strstr($keyword, 'music') || strstr($keyword, '歌曲') 
 			    || strstr($keyword, '点歌') || strstr($keyword, '点播') )
 			{  
-					$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，或者以*号隔开歌曲和歌手，如输入：\n"
-					."点歌 天使*五月天\n点歌  单身情歌\n点歌随机\n\n播放时需要时间缓冲请等待，如果不能播放，获取下一首请回复d";
-			}
-			/////////////////////////////////////////////////////////////藏头诗
-			else if(strstr($keyword, '藏头诗') || strstr(strtolower($keyword), 'cts')|| strstr($keyword, '我爱') )
-			{  
-					$keyword = str_replace(' ', '', $keyword);
-					$keyword = str_replace('cts', '', strtolower($keyword));
-					$keyword = str_replace('藏头诗', '', strtolower($keyword));
-					if(strlen($keyword) == 0)
-					{
-						$contentStr = "获取藏头诗请以'cts'开头，后面跟上内容就行啦，比如输入：\ncts 我爱小敏";
-					}
-					else{
-						$wechat_moreinfoObj = new wechat_moreInfo();
-						$contentStr = $wechat_moreinfoObj->getCTS($keyword).getending();
-						$ctype = 'cts';
-					}
+				$contentStr = "暂不支持功能。";
+					//$contentStr = "请以点歌两个字开头，后面再跟上歌曲名，如输入:\n点歌 突然好想你";
 			}
 			/////////////////////////////////////////////////////////////藏头诗
 			else if(strstr($keyword, '藏尾诗') || strstr(strtolower($keyword), 'cws'))
@@ -910,32 +862,42 @@ class webchat_textmsg
 					}
 					else{
 						$wechat_moreinfoObj = new wechat_moreInfo();
-						$contentStr = $wechat_moreinfoObj->getCWS($keyword).getending();
+						$contentStr = $wechat_moreinfoObj->getCWS($keyword);
+						$ctype = 'cts';
+					}
+			}
+			/////////////////////////////////////////////////////////////藏头诗
+			else if(strstr($keyword, '藏头诗') || strstr(strtolower($keyword), 'cts')|| strstr($keyword, '我爱') )
+			{  
+					$keyword = str_replace(' ', '', $keyword);
+					$keyword = str_replace('cts', '', strtolower($keyword));
+					$keyword = str_replace('藏头诗', '', strtolower($keyword));
+					if(strlen($keyword) == 0)
+					{
+						$contentStr = "获取藏头诗请以'cts'开头，后面跟上内容就行啦，比如输入：\ncts 我爱小敏";
+					}
+					else{
+						$wechat_moreinfoObj = new wechat_moreInfo();
+						$contentStr = $wechat_moreinfoObj->getCTS2($keyword);
 						$ctype = 'cts';
 					}
 			}
 			//微英语
-			else if( strstr($keyword, '微英语')){
+			else if( strstr($keyword, '英语')){
 				$contentStr =  data_getEnglish()."\n\n再来一个回复e";
 				$ctype = 'english';
 			}	
 			/////////////////////////////////////////////////////////////十万个为什么
-			else if(strstr($keyword, '十万个为什么') || strstr($keyword, '科普')|| strtolower($keyword) == 'w')
+			else if(strstr($keyword, '十万个为什么') || strstr($keyword, '科普')|| strtolower($keyword) == 'w' 
+			|| strstr($keyword, '常识') || strstr($keyword, '知识'))
 			{  
-					$contentStr = "【科普知识】\n".data_getkepu()."\n\n再来一条回复w".getending();
+					$contentStr = "【科普知识】\n".data_getkepu()."\n\n再来一条回复w";
 					$ctype = 'kepu';
 			}
-			/////////////////////////////////////////////////////////////常识
-			//else if(strstr($keyword, '常识') || strstr($keyword, '知识') )
-			//{  
-			//		$wechat_moreinfoObj = new wechat_moreInfo();
-			//		$contentStr = $wechat_moreinfoObj->getXZS();
-			//		$ctype = 'xzs';
-			//}
 			/////////////////////////////////////////////////////////////脑筋急转弯
 			else if(strstr($keyword, '急转弯') || strstr(strtolower($keyword), 'jzw'))
 			{  
-					$contentStr = "【脑筋急转弯】\n".data_getjzw().getending();
+					$contentStr = "【脑筋急转弯】\n".data_getjzw();
 					$ctype = 'jzw';
 			}
 			/////////////////////////////////////////////////////////////脑筋急转弯
@@ -951,36 +913,7 @@ class webchat_textmsg
 					$contentStr = $webchat_googleObj->getqianming(trim($match[1]), $fromUsername);
 					$ctype = 'imagesearch';
 				}
-			}			
-			///////////////////////////////////////////////////////点歌
-			else if(preg_match("/(.*)\*(.*)$/", trim($keyword), $match) ||
-				preg_match("/(.*)\*(.*)$/", trim($keyword), $match)
-			){
-				if(strlen(trim($match[2])) == 0 ){ 
-					$contentStr = "如果要点歌，请以‘点歌’两个字开头，后面再跟上歌曲名，或者以*号隔开歌曲和歌手，如输入：\n"
-					."点歌 天使*五月天\n点歌  单身情歌\n点歌随机\n\n播放时需要时间缓冲请等待，如果不能播放，获取下一首请回复d";
-				}else if(strlen(trim($match[1])) == 0){
-					$webchat_lyricObj = new webchat_lyric();
-					$contentStr = $webchat_lyricObj->bysong(trim($match[1]), 0);
-					if(!strstr($contentStr, '找不到歌曲')){
-						d_setvalues_3($fromUsername, 'song', trim($match[1]), 'singer', '', 'songPage', 2);
-						$ctype = 'music';
-					}
-				}else{
-					$webchat_lyricObj = new webchat_lyric();
-					$contentStr = $webchat_lyricObj->bysongsinger(trim($match[1]),trim($match[2]), 0); 
-					if(!strstr($contentStr, '找不到歌曲')){
-						d_setvalues_3($fromUsername, 'song', trim($match[1]),'singer', trim($match[2]), 'songPage', 2);
-						$ctype = 'music';
-					}
-				}				
 			}
-			/////////////////////////////////////////////////////////////picture
-			//else if(strstr($keyword, '图'))
-			//{ 
-				//$contentStr = '图片很费流量的啦...打开电脑看吧...';
-				//$ctype = 'picture';
-			//}
 			else
 			{   //取消自动回复
 				if(d_isautoreply($fromUsername) == 0){ 		
@@ -1037,7 +970,7 @@ class webchat_textmsg
 							{
 								//Simsimi
 								$webchat_simsimiObj = new webchat_simsimi();
-								$contentStr = $webchat_simsimiObj->chat($keyword).getending();
+								$contentStr = $webchat_simsimiObj->chat($keyword);
 								$ctype = 'simsimi';  
 							
 								for($i=0;$i<$arrarycount;$i++)
@@ -1069,7 +1002,8 @@ class webchat_textmsg
 				strstr($keyword, '为啥')	||
 				strstr($keyword, '如何')||	 
 				strstr($keyword, '怎办')||	 	
-				strstr($keyword, '咋办')||		 	
+                strstr($keyword, '咋办')||
+                strstr($keyword, '哪')||
 				strstr($keyword, '咋么') )
 			){				
 				$webchat_baiduObj = new webchat_baidu();
@@ -1077,7 +1011,7 @@ class webchat_textmsg
 				$contentStr .= "\n\n--------------\n".$contentStr2."\n获取更多满意答案\n请以'?'开头，如:\n? $keyword ";
 			}						
 			//////////////////////////////////////////////////////////////////维基百科
-			else if($ctype != 'share' && !preg_match("/^？(.*)$/", trim($keyword)) && !preg_match("/^?(.*)$/", trim($keyword)) &&
+			else if($ctype != 'share' && !strstr(trim($keyword),"？") &&
 				   (strstr($keyword, '是什么') || 
 					strstr($keyword, '是谁')  || 
 					strstr($keyword, '是誰')  || 
@@ -1102,6 +1036,11 @@ class webchat_textmsg
 					$contentStr .= "\n--------------\n".$contentStr2."\n获取更多请以'？'开头，如:\n？ $searchwords ";
 				}
 			}   
+			else if(strstr($keyword, '你是人') || strstr($keyword, '机器') 
+			|| strstr($keyword, '你是真人')|| strstr($keyword, '假人')) {
+				$contentStr2 = "对，我不是人，但是我喜欢你。真心的。";
+                $contentStr .= "\n--------------\n".$contentStr2;
+			}
 			if(strstr($keyword, '功能')){
 					$contentStr .= "\n--------------\n查看我的功能，请输入 help ";
 			}
@@ -1139,6 +1078,7 @@ class webchat_textmsg
 				'很多人闯进你的生活，只是为了给你上一课，然后转身离开。',
 				'人生为棋，我愿为卒，行动虽慢，可谁见我都会后退一步!',
 				'人生不如意事十之八九。谋十事有一事能成，当感恩。',
+                '如有需要可以加我主人的私人微信love_icoding',
 				'我很幸福，因为我爱的人也爱着我。',
 				'亲，觉得好用de话，把我推荐给你的朋友好不好呀~~', secret_welcome());
 			$motion = array("/:@>/:<@", "/:B-)","/::>","/::,@","/::D","/::)","/::P","/::$","/:,@-D","/:,@P",

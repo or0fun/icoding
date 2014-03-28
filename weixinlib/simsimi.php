@@ -1,4 +1,4 @@
-﻿<?php 
+<?php 
  
 //$webchat_wikiObj = new webchat_simsimi();
 //echo $contentStr = $webchat_wikiObj->chat('爱情');
@@ -104,7 +104,7 @@ class webchat_simsimi{
 	public function s_chatting($keyword){ 
 		 
 		if ( $keyword<>'' ){   
- 			$keys = array('1461c254-d455-482c-98ee-877106c4ed8a', 'a3144000-0445-4723-a4d0-04e2d19a34e5');
+ 			$keys = array('02ce6c2a-b7b7-4b34-b69c-a25a09774c46', 'ec5f8c1b-d992-41fd-9db6-a855e5e46088');
 			$curl = curl_init(); 
 			curl_setopt($curl, CURLOPT_URL, 'http://sandbox.api.simsimi.com/request.p?key='.$keys[rand(0, 1)].'&lc=ch&ft=1.0&text='.$keyword); 
 			curl_setopt($curl, CURLOPT_HEADER, 0); 

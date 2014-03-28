@@ -1,5 +1,7 @@
-<?php
- 
+ï»¿<?php
+//$webchat_dreamObj = new webchat_dream();
+//echo $webchat_dreamObj->analysis('å¤§æµ·');
+    
 class webchat_dream
 {
 	public function analysis($searchwords)
@@ -8,35 +10,72 @@ class webchat_dream
 			$searchwords = mb_substr($contentStr, 0, 8, 'utf-8');
 		}
 		if(strlen(trim($searchwords))==0){
-			$contentStr = "Ç×£¬Òª½âÃÎÂğ£¿Ö»ÒªÏÈÊäÈë'ÃÎ¼û'Á½¸ö×Ö£¬\nÔÙºóÃæ¼ÓÉÏÄãµÄÃÎ¾³¿ÉÒÔÀ²£¬Èç£ºÃÎ¼ûÀÏÊ¦";
+			$contentStr = "äº²ï¼Œè¦è§£æ¢¦å—ï¼Ÿåªè¦å…ˆè¾“å…¥'æ¢¦è§'ä¸¤ä¸ªå­—ï¼Œ\nå†åé¢åŠ ä¸Šä½ çš„æ¢¦å¢ƒå¯ä»¥å•¦ï¼Œå¦‚ï¼šæ¢¦è§è€å¸ˆ";
 		}else{						
-			$contentStr = $this->get($searchwords);  
+			$contentStr = $this->get2($searchwords);  
 			if(strlen($contentStr) == 0){
-				$contentStr = 'Sorry.Õâ¸öÃÎÎÒ½â²»ÁË'."/::D".'¿ÉÒÔËµµÄ¼òµ¥µã£¬±ÈÈç£ºÃÎ¼û´óº£'; 
+				$contentStr = 'Sorry.è¿™ä¸ªæ¢¦æˆ‘è§£ä¸äº†'."/::D".'å¯ä»¥è¯´çš„ç®€å•ç‚¹ï¼Œæ¯”å¦‚ï¼šæ¢¦è§å¤§æµ·'; 
 			}else{ 
-				$contentStr = $contentStr."\n¡¾½ö¹©²Î¿¼¡¿";
+				$contentStr = $contentStr."\nã€ä»…ä¾›å‚è€ƒã€‘";
 			}
 		}		
-		return  iconv("gb2312", "UTF-8", $contentStr);
+		return  $contentStr;
 	}
-	function get($words)
+	public function get2($words)
 	{  
-		// ³õÊ¼»¯Ò»¸ö cURL ¶ÔÏó  
 		$curl = curl_init();
-		// ÉèÖÃÄãĞèÒª×¥È¡µÄURL 
-		curl_setopt($curl, CURLOPT_URL, 'http://www.zgjm.org/plus/search.php?q='.urlencode(iconv("UTF-8", "gb2312", $words)));
-		// ÉèÖÃheader
+		curl_setopt($curl, CURLOPT_URL, 'http://zhougongjiemeng.1518.com/search2.php?word='.urlencode($words));
 		curl_setopt($curl, CURLOPT_HEADER, 1);
-		// ÉèÖÃcURL ²ÎÊı£¬ÒªÇó½á¹û±£´æµ½×Ö·û´®ÖĞ»¹ÊÇÊä³öµ½ÆÁÄ»ÉÏ¡£
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		// ÉèÖÃcURL ²ÎÊı£¬Ê±¼ä³¬Ê±
-		curl_setopt($curl, CURLOPT_TIMEOUT, 4);
-		// ÔËĞĞcURL£¬ÇëÇóÍøÒ³
+		curl_setopt($curl, CURLOPT_TIMEOUT, 2);
 		$data = curl_exec($curl);
-		// ¹Ø±ÕURLÇëÇó
 		curl_close($curl);
 		if($data == false)
-			return "Oops!ÕâÆÆÍøÌ«ÂıÀ²£¬ÇëÔÙÊÔÒ»±é~";   
+			return "Oops!è¿™ç ´ç½‘å¤ªæ…¢å•¦ï¼Œè¯·å†è¯•ä¸€é~";
+        if(strstr($data, "302 Moved")) {
+            $index = strpos($data, '/zhougongjiemeng-');
+            $link = trim(substr($data, $index));
+        }else{
+            $index = strpos($data, '<a href="/zhougongjiemeng-');
+            $index2 = strpos($data, '"', $index + 10);
+            $link = substr($data, $index + 9, $index2 - $index - 9);
+        }
+        $url = "http://zhougongjiemeng.1518.com".$link;
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_HEADER, 1);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 2);
+        $data = curl_exec($curl);
+        curl_close($curl);
+        if($data == false)
+            return "Oops!è¿™ç ´ç½‘å¤ªæ…¢å•¦ï¼Œè¯·å†è¯•ä¸€é~";
+        $index = strpos($data, '<dd>');
+        $index2 = strpos($data, '</dd>', $index);
+        $re = substr($data, $index + 4, $index2 - $index - 4);
+        
+		$re = str_replace("<br />", '', $re);
+		$re = mb_convert_encoding($re, "UTF-8", "gbk");
+		return $re;
+	} 
+	function get($words)
+	{  
+		// åˆå§‹åŒ–ä¸€ä¸ª cURL å¯¹è±¡  
+		$curl = curl_init();
+		// è®¾ç½®ä½ éœ€è¦æŠ“å–çš„URL 
+		curl_setopt($curl, CURLOPT_URL, 'http://www.zgjm.org/plus/search.php?q='.urlencode(iconv("UTF-8", "gb2312", $words)));
+		// è®¾ç½®header
+		curl_setopt($curl, CURLOPT_HEADER, 1);
+		// è®¾ç½®cURL å‚æ•°ï¼Œè¦æ±‚ç»“æœä¿å­˜åˆ°å­—ç¬¦ä¸²ä¸­è¿˜æ˜¯è¾“å‡ºåˆ°å±å¹•ä¸Šã€‚
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+		// è®¾ç½®cURL å‚æ•°ï¼Œæ—¶é—´è¶…æ—¶
+		curl_setopt($curl, CURLOPT_TIMEOUT, 4);
+		// è¿è¡ŒcURLï¼Œè¯·æ±‚ç½‘é¡µ
+		$data = curl_exec($curl);
+		// å…³é—­URLè¯·æ±‚
+		curl_close($curl);
+		if($data == false)
+			return "Oops!è¿™ç ´ç½‘å¤ªæ…¢å•¦ï¼Œè¯·å†è¯•ä¸€é~";   
 		$in = strpos($data, '<dd>');
 		$in2 = strpos($data, '</dd>', $in + 4);
 		$tmp = substr($data, $in, $in2 - $in);

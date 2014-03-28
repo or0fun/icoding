@@ -6,17 +6,11 @@
  {
 	public function getcheci($checi){   
 		$curl = curl_init();
-		// 设置你需要抓取的URL
 		curl_setopt($curl, CURLOPT_URL, 'http://wap.huoche.com/checi/'.$checi);
-		// 设置header
 		curl_setopt($curl, CURLOPT_HEADER, 0);
-		// 设置cURL 参数，要求结果保存到字符串中还是输出到屏幕上。
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		// 设置cURL 参数，时间超时
 		curl_setopt($curl, CURLOPT_TIMEOUT, 4);
-		// 运行cURL，请求网页
 		$content = curl_exec($curl); 
-		// 关闭URL请求
 		curl_close($curl); 
 		if($content == false)
 			echo "Oops!这网速也忒慢啦~请再输入一遍~";
@@ -27,17 +21,16 @@
 		$index = strpos($str, "<h2>") + 4;	
 
 		$index2 = strpos($str, '<', $index );
-		$train = substr($str, $index, $index2-$index);
+		$train = substr($str, $index, $index2 - $index);
 		$index = strpos($str, '>', $index2);
 		$index2 = strpos($str, '<', $index );
-		$path = trim(substr($str, $index+1, $index2-$index-1));
-		$index = strpos($str, '>', $index2);
-		$index = strpos($str, '>', $index+1);
+		$path = trim(substr($str, $index+1, $index2 - $index - 1));
+		$index = strpos($str, '全程：', $index2);
 		$index2 = strpos($str, '<', $index );
-		$long = trim(substr($str, $index+1, $index2-$index-1));
-		$index = strpos($str, '>', $index2);
+		$long = trim(substr($str, $index, $index2 - $index));
+		$index = strpos($str, '全程用时', $index2);
 		$index2 = strpos($str, '<', $index );
-		$dur = trim(substr($str, $index+1, $index2-$index-1));
+		$dur = trim(substr($str, $index, $index2 - $index));
 		  
 		$re = $train."\n".$path."\n";
 		$re .= $long."\n";

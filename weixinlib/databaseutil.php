@@ -1,5 +1,7 @@
-﻿<?php 
+<?php 
 	 
+	require_once 'mysqlHelper.php';
+	require_once 'webHelper.php';
 	//database operations--------------------
 	//插入文本
 	function d_inserttext($fromuser, $keyword, $createTime, $content, $ptime, $ctype="general", $moretext=""){ 
@@ -7,41 +9,19 @@
 		if($ctype == "train" && strlen($moretext) == 0){
 			return;
 		}
+		$totaltime = 5 - (time() - $createTime);
+		if($totaltime < 0)
+			return;
+			
 		//database connection
 		$fromuser = addslashes($fromuser); 
 		$keyword = addslashes($keyword);  
 		$content = addslashes($content);   
-		 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "wxmsg"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$totaltime = 5 - (time() - $createTime);
-		if($totaltime < 0)
-			return;
 		
-		$mysqli = mysqli_init();
-		if (!$mysqli) { 
-			return; 
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {  
-			return;
-		} 
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, $totaltime)) {  
-			return;
-		} 
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {  
-			return;
-		}
-		$result=$mysqli->query("set names 'utf8'");
-		if (!$result) {  
-			return;
-		}
+		$mysqlHelperObj = new mysqlHelper();
 		if($ctype != "train"){
 			$sql = "INSERT INTO wxmsg (fromuser,msg,reply,revtime,reptime,ptype)VALUES('$fromuser','$keyword','$content',FROM_UNIXTIME($createTime),FROM_UNIXTIME($ptime),'$ctype')"; 
-			$result=$mysqli->query($sql);
+			$result = $mysqlHelperObj->execute($sql);
 			if (!$result) {  
 				return;
 			} 
@@ -50,114 +30,48 @@
 		if(strlen($moretext) > 0){
 			$moretext = addslashes($moretext); 
 			$sql = "update users set more_flag='1', moretext='$moretext' where user = '$fromuser'"; 
-			$result=$mysqli->query($sql);
+			$result = $mysqlHelperObj->execute($sql);
 			if (!$result) { 
 				$sql = "INSERT INTO users (user, ptime)VALUES('$fromuser', FROM_UNIXTIME($ptime) )"; 
-				$result=$mysqli->query($sql);
+				$result = $mysqlHelperObj->execute($sql);
 				$sql = "update users set more_flag='1', moretext='$moretext' where user = '$fromuser'"; 
-				$result=$mysqli->query($sql);
+				$result = $mysqlHelperObj->execute($sql);
 				return;
 			} 
 		}   
 	}
 	//插入位置
 	function d_insertlocation($fromuser, $Location_X, $Location_Y, $Scale, $Label){
-		//database connection
 		$fromuser = addslashes($fromuser);
 		$Label = addslashes($Label); 
 		$ptime = time();
 		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "userlocation"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);
-			mysql_query("set names 'utf8'");
-			//database operation
- 			$sql = "INSERT INTO $table_comm (user,Location_X,Location_Y,Scale,Label, ptime)VALUES('$fromuser', '$Location_X', '$Location_Y',$Scale, $Label, FROM_UNIXTIME($ptime) )"; 
-			if(!mysql_query($sql,$conn)){ 
-			//	die("failed to insert data error:".mysql_error());
-			} else { 
-			}
-			mysql_close($conn);
-		}else{
-		//	die("failed to open database error:".mysql_error());
-		}
+		$mysqlHelperObj = new mysqlHelper();
+ 		$sql = "INSERT INTO userlocation (user,Location_X,Location_Y,Scale,Label, ptime)VALUES('$fromuser', '$Location_X', '$Location_Y',$Scale, $Label, FROM_UNIXTIME($ptime) )"; 
+		$mysqlHelperObj->execute($sql);	
 	}
 	//插入用户
 	function d_insertuser($fromuser){
-		//database connection
-		$fromuser = addslashes($fromuser); 
-		$ptime = time();
-			 
- 		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "users"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		
-		$mysqli = mysqli_init();
-		if (!$mysqli) { 			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {  			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 4)) {  			 
-			return '';
-		} 
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {  			 
-			return '';
-		}
-		$result=$mysqli->query("set names 'utf8'");
-		if (!$result) {   
-			return '';
-		}
-		 
-		$sql = "INSERT INTO $table_comm (user, ptime)VALUES('$fromuser', FROM_UNIXTIME($ptime) )"; 
-		
-		$result=$mysqli->query($sql);
-		if (!$result) {  
-			return '';
-		}
+		d_setsubscribe($fromuser);
+		$mysqlHelperObj = new mysqlHelper();
  		$sql = "select count(id) as cc from users"; 
-		$result=$mysqli->query($sql);
-		if (!$result) {  
-			return '';
-		}
-		$row = $result->fetch_object();
-		if($row){
-			return $row->cc;  
-		} 
-		return '';
+		$num = $mysqlHelperObj->queryValue($sql, 'cc');
+		return $num;
 	} 
 	//获取分享内容
 	function d_getshare($fromuser){		
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){ 
-			return "";
-		}  
-		mysql_select_db($database_conn, $conn);
-		mysql_query("set names 'utf8'"); 
+		$mysqlHelperObj = new mysqlHelper();
 		$sql = "select msg,fromuser from wxmsg where fromuser <> '$fromuser' and ptype='share' ".
 		        " order by RAND() limit 1";  
-		$result = mysql_query($sql, $conn); 
-		if($result){   
-			$row = mysql_fetch_array($result); 
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0]; 
 			$msg = stripslashes($row['msg']);  
 			$user = stripslashes($row['fromuser']); 
 			$sql = "select city, name from users where user='$user'"; 
-			$result = mysql_query($sql, $conn); 
-			if($result){   
-				$row = mysql_fetch_array($result);
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){   
+				$row = $rows[0];
 				$city = stripslashes($row['city']);  
 				$name = stripslashes($row['name']);
 				if ($city == ''){
@@ -173,27 +87,18 @@
 	}	
 	//获取图片链接
 	function d_getimage($fromuser){		
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){ 
-			return "";
-		}  
-		mysql_select_db($database_conn, $conn);
-		mysql_query("set names 'utf8'"); 
+		$mysqlHelperObj = new mysqlHelper(); 
 		$sql = "select msg,fromuser from wxmsg where fromuser <> '$fromuser' and ptype='image' ".
-		        " order by RAND() limit 1";  
-		$result = mysql_query($sql, $conn); 
-		if($result){   
-			$row = mysql_fetch_array($result); 
+		        " order by RAND() limit 1";
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
 			$image = stripslashes($row['msg']);  
 			$user = stripslashes($row['fromuser']); 
 			$sql = "select city, name from users where user='$user'"; 
-			$result = mysql_query($sql, $conn); 
-			if($result){   
-				$row = mysql_fetch_array($result);
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){   
+				$row = $rows[0];
 				$city = stripslashes($row['city']);  
 				$name = stripslashes($row['name']);
 				if ($city == ''){
@@ -208,26 +113,13 @@
 	 
 	}	
 	//获取需要重复的信息
-	function d_getpoststr($fromuser){		
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "users"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){ 
-			return "";
-		}  
-		mysql_select_db($database_conn, $conn);
-		mysql_query("set names 'utf8'");
-		//database operation
+	function d_getpoststr($fromuser){	
+		$mysqlHelperObj = new mysqlHelper();
 		$sql = "select repeat_str from users where user='$fromuser'";  
-		$result = mysql_query($sql, $conn); 
-		if(!$result){   
-			mysql_close($conn);
-			return "";
-		} else {    
-			$row = mysql_fetch_array($result); 
+		 
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];	
 			$repeat_str = stripslashes($row['repeat_str']);  
 			mysql_close($conn);
 			if(strlen($repeat_str) > 0){
@@ -248,57 +140,17 @@
 	
 	//执行
 	function d_execute($sqlstr){
-	
-		$hostname_conn = "mysql1403.ixwebhosting.com"; 
- 		$port_conn = "3306"; 
-		$database_conn = "C360953_fangjun";  
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320";   
-		
-		$mysqli = mysqli_init();
-		if (!$mysqli) { 			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_INIT_COMMAND, 'SET AUTOCOMMIT = 0')) {  			 
-			return '';
-		} 
-		if (!$mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 4)) {  			 
-			return '';
-		} 
-		if (!$mysqli->real_connect($hostname_conn,$username_conn,$password_conn,$database_conn,$port_conn)) {  			 
-			return '';
-		}
-		$result=$mysqli->query("set names 'utf8'");
-		if (!$result) {   
-			return '';
-		}
-		 
-		$sql = $sqlstr; 
-		
-		$result=$mysqli->query($sql); 
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sqlstr);
 	}
 	 
 	//我是谁
 	function d_getusername($fromUsername){ 
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "users"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){
-			return "";
-		}  
-		mysql_select_db($database_conn, $conn);
-		mysql_query("set names 'utf8'");
-		//database operation
-		$sql = "SELECT sex,city, name FROM $table_comm  WHERE user='".$fromUsername."'";  
-		$result = mysql_query($sql, $conn); 
-		if(!$result){   
-			mysql_close($conn);
-			return "";
-		} else {    
-			$row = mysql_fetch_array($result); 
+		$mysqlHelperObj = new mysqlHelper();
+		$sql = "SELECT sex,city, name FROM users  WHERE user='".$fromUsername."'";  
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0]; 
 			$sex = $row['sex']; 
 			if($sex == '1')
 				$sex = '大帅哥';
@@ -316,38 +168,20 @@
 	function d_getmaxnum($url, $ptype) 
 	{
 		$url = addslashes($url);
-		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";  
-		$table_comm = "shortaddr"; 
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if (!$conn){
-		//	die("failed to connect mysql:" . mysql_error());
-			return -1;
-		}  
-		mysql_select_db($database_conn, $conn);  
-		mysql_query("set names 'utf8'");  
-		$sql = "select id from $table_comm where addr='$url'"; 
-		if($result=mysql_query($sql,$conn)){  
-			if($row = mysql_fetch_array($result)){ 
-				$content = $row['id']; 
-				mysql_close($conn);
-				return $content;
-			}else{
-				$sql = "insert into $table_comm(addr, ptype)values('$url', '$ptype')"; 
-				if(!mysql_query($sql,$conn)){ 
-				//	die("failed to insert data error:".mysql_error());
-				}  
-				$sql = "select id from $table_comm order by id desc limit 1"; 
-				$result = mysql_query($sql, $conn); 
-				if(!$result){   
-					mysql_close($conn);
-					return -1;
-				} else {    
-					$row = mysql_fetch_array($result); 
+		$sql = "select id from shortaddr where addr='$url'"; 
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$content = $row['id']; 
+			return $content;
+		}else{
+			$sql = "insert into shortaddr(addr, ptype)values('$url', '$ptype')"; 
+			if($mysqlHelperObj->execute($sql)){
+				$sql = "select id from shortaddr order by id desc limit 1"; 
+				$rows = $mysqlHelperObj->queryValueArray($sql);
+				if($rows != ""){   
+					$row = $rows[0]; 
 					$content = $row['id']; 
-					mysql_close($conn);
 					return $content;
 				} 
 			} 
@@ -404,198 +238,122 @@
 	} 
 	//管理员获取数据库信息
 	function d_getdatabase(){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");
-			//database operation
-			$re = '';
- 			$sql = "select count(id) as cc from users where subscribe='1'"; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$num = $row["cc"];
-				$re .= $num;
-				$sql = "select count(id) as cc from wxmsg"; 
-				if($result = mysql_query($sql,$conn)){  
-					$row = mysql_fetch_array($result);
-					$num = $row["cc"]; 
-					$re .= ",".$num;
-				}  
+		$mysqlHelperObj = new mysqlHelper();
+		$re = '';
+ 		$sql = "select count(id) as cc from users where subscribe='1'"; 
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$num = $row["cc"];
+			$re .= $num;
+			$sql = "select count(id) as cc from wxmsg"; 
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){   
+				$row = $rows[0];
+				$num = $row["cc"]; 
+				$re .= ",".$num;  
 			}
-			mysql_close($conn);
-			return $re;
 		}
-		return "";
+		return $re;
 	} 
 	//获取更多
 	function d_getmore($fromuser){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);  
-			mysql_query("set names 'utf8'");  
-			//database operation
-			$more = '';
- 			$sql = "select moretext  from users where  user = '$fromuser' and more_flag='1'"; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$more = $row["moretext"]; 
-				$sql = "update users set more_flag='0' where user = '$fromuser'"; 
-				$result = mysql_query($sql,$conn);
-			}
-			mysql_close($conn);
-			if(strlen($more) > 0) 
-				return "(接上)\n".stripslashes($more);
-		} 
+		$more = '';
+		$mysqlHelperObj = new mysqlHelper();
+ 		$sql = "select moretext  from users where  user = '$fromuser' and more_flag='1'"; 
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$more = $row["moretext"]; 
+			$sql = "update users set more_flag='0' where user = '$fromuser'"; 
+			$mysqlHelperObj->execute($sql);
+		}
+		if(strlen($more) > 0) 
+			return "(接上)\n".stripslashes($more);
+			
 		$contentStr = '就这么多啦~';
 		$motion = array("/:@>/:<@", "/:B-)","/::>","/::,@","/::D","/::)","/::P","/::$","/:,@-D","/:,@P");
 		$contentStr .= $motion[rand(0, count($motion)-1)]; 
 		return $contentStr;
 	} 
 	function d_setmore($fromuser, $str){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			$str = addslashes($str);
-			//database operation 
- 			$sql = "update users set more_flag='1', moretext='$str' where user = '$fromuser'"; 
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$str = addslashes($str);
+		$mysqlHelperObj = new mysqlHelper();
+ 		$sql = "update users set more_flag='1', moretext='$str' where user = '$fromuser'"; 
+		$mysqlHelperObj->execute($sql);
 	} 
+	
+	//订阅
+	function d_setsubscribe($fromuser){
+		$mysqlHelperObj = new mysqlHelper();
+ 		$sql = "update users set subscribe='1' where user = '$fromuser'";
+		$mysqlHelperObj->execute($sql);
+        $ptime = time();
+        $sql = "insert into users (user, ptime)values('$fromuser', FROM_UNIXTIME($ptime) )";
+        $mysqlHelperObj->execute($sql);
+		
+	}
 	//取消订阅
 	function d_setunsubscribe($fromuser){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			//database operation 
-			$ptime = time();
- 			$sql = "update users set subscribe='0', unsubscribe= FROM_UNIXTIME($ptime)  where user = '$fromuser'"; 
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$mysqlHelperObj = new mysqlHelper();
+		$ptime = time();
+ 		$sql = "update users set subscribe='0', unsubscribe= FROM_UNIXTIME($ptime)  where user = '$fromuser'"; 
+		$mysqlHelperObj->execute($sql);
 	}  
 	
 	function d_isautoreply($fromuser){
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn);  
-			mysql_query("set names 'utf8'");  
-			//database operation
-			$autoreply = 1;
- 			$sql = "select autoreply  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				if($row)
-					$autoreply = $row["autoreply"];
-				else{ 
-					$ptime = time();
-					$sql = "INSERT INTO users (user, ptime)VALUES('$fromuser', FROM_UNIXTIME($ptime) )";  
-					$result= mysql_query($sql,$conn);
-				}
-			}
-			mysql_close($conn);   
-			return $autoreply; 
-		} 
-		return 1;
+		$mysqlHelperObj = new mysqlHelper();
+		$autoreply = 1;
+ 		$sql = "select autoreply  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$value = $mysqlHelperObj->queryValue($sql, "autoreply");
+		if($value != ""){
+			$autoreply = $value;
+		}else {		
+			//d_setsubscribe($fromuser);
+            //$mysqlHelperObj = new mysqlHelper();
+            $sql = "update users set subscribe='1' where user = '$fromuser'";
+            $mysqlHelperObj->execute($sql);
+            //if($mysqlHelperObj->execute($sql) == false) {
+                $ptime = time();
+                $sql = "insert into users (user, ptime)values('$fromuser', FROM_UNIXTIME($ptime) )";
+                $mysqlHelperObj->execute($sql);
+            //}
+
+		}  
+		return $autoreply;
 	}
 	
 	function d_setnewsflag($fromuser, $rn){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			//database operation 
- 			$sql = "update users set news_flag='$rn' where user = '$fromuser'"; 
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+ 		$sql = "update users set news_flag='$rn' where user = '$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_getnewsflag($fromuser){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
 		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		$rn = 0;
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
- 			$sql = "select news_flag  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$rn = $row["news_flag"];
-			}
-			mysql_close($conn);
+		$rn = 0;  
+ 		$sql = "select news_flag  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$rn = $row["news_flag"];
 		}
 		return $rn;
 	} 
 	function d_setnewsstr($fromuser, $news_str){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($news_str);  
-			//database operation 
- 			$sql = "update users set news_str='$news_str' where user = '$fromuser'"; 
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$news_str = addslashes($news_str); 
+ 		$sql = "update users set news_str='$news_str' where user = '$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_getnewsstr($fromuser){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		$news = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
- 			$sql = "select news_str  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$news = $row["news_str"];
-			}
-			mysql_close($conn);
+ 		$sql = "select news_str  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$news = $row["news_str"];
 		}
 		return stripslashes($news);
 	} 
@@ -603,281 +361,158 @@
 	
 	function d_setzhidaostr($fromuser, $zhidao_str, $flag){
 		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($zhidao_str);  
-			//database operation 
-			if($flag == 0)
-				$sql = "update users set zhidao_str='$zhidao_str' where user = '$fromuser'"; 
-			else if($flag == 1)
-				$sql = "update users set zhidao_str2='$zhidao_str' where user = '$fromuser'"; 
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+ 		$news_str = addslashes($zhidao_str);
+		if($flag == 0)
+			$sql = "update users set zhidao_str='$zhidao_str' where user = '$fromuser'"; 
+		else if($flag == 1)
+			$sql = "update users set zhidao_str2='$zhidao_str' where user = '$fromuser'"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_getzhidaostr($fromuser, $flag){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$news = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'"); 
-			if($flag == 0){
-				$sql = "select zhidao_str  from users where  user = '$fromuser' "; 
-				if($result =mysql_query($sql,$conn)){  
-					$row = mysql_fetch_array($result);
-					$news = $row["zhidao_str"];
-				}
+		if($flag == 0){
+			$sql = "select zhidao_str  from users where  user = '$fromuser' "; 
+			$mysqlHelperObj = new mysqlHelper();
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){   
+				$row = $rows[0];
+				$news = $row["zhidao_str"];
 			}
-			else if($flag == 1){
-				$sql = "select zhidao_str2  from users where  user = '$fromuser' ";  
-				if($result =mysql_query($sql,$conn)){  
-					$row = mysql_fetch_array($result);
-					$news = $row["zhidao_str2"];
-				}
+		}
+		else if($flag == 1){
+			$sql = "select zhidao_str2  from users where  user = '$fromuser' ";  
+			$mysqlHelperObj = new mysqlHelper();
+			$rows = $mysqlHelperObj->queryValueArray($sql);
+			if($rows != ""){   
+				$row = $rows[0];
+				$news = $row["zhidao_str2"];
 			}
-				
-			mysql_close($conn);
 		}
 		return stripslashes($news);
 	} 
 	//随机获取每日一条
 	function d_getonestr(){		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		$onestr = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
- 			$sql = "select words, time, id  from one where id >= (SELECT FLOOR(RAND() * (SELECT MAX(ID) FROM one))) order by RAND() limit 1"; 
-			if($result = mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$onestr = $row["time"]."\n".$row["words"];
-				$id = $row["id"];
-				$query = "update one set pcount = pcount+1 where id = '$id'";  
-				$result = mysql_query($sql,$conn); 
-			}
-			mysql_close($conn);
+ 		$sql = "select words, time, id  from one where id >= (SELECT FLOOR(RAND() * (SELECT MAX(ID) FROM one))) order by RAND() limit 1"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$onestr = $row["time"]."\n".$row["words"];
+			$id = $row["id"];
+			$sql = "update one set pcount = pcount+1 where id = '$id'";  
+			$mysqlHelperObj->execute($sql);
 		}
 		return stripslashes($onestr);
 	} 
-	function d_getonestrBydate($date){		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
+	function d_getonestrBydate($date){	
 		$onestr = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
- 			$sql = "select words, time, id  from one where time = '$date'  order by RAND() limit 1"; 
-			if($result = mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$onestr = $row["time"]."\n".$row["words"];
-				$id = $row["id"];
-				$query = "update one set pcount = pcount+1 where id = '$id'";  
-				$result = mysql_query($sql,$conn); 
-			}
-			mysql_close($conn);
+ 		$sql = "select words, time, id  from one where time = '$date'  order by RAND() limit 1"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$onestr = $row["time"]."\n".$row["words"];
+			$id = $row["id"];
+			$sql = "update one set pcount = pcount+1 where id = '$id'";  
+			$mysqlHelperObj->execute($sql);
 		}
 		return stripslashes($onestr);
 	} 
 	function d_getonestrBywords($words){		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$onestr = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
- 			$sql = "select words, time, id  from one where words  LIKE '%$words%' or time LIKE '%$words%' order by RAND()  limit 1"; 
-			if($result = mysql_query($sql,$conn)){  
-				if($row = mysql_fetch_array($result)){
-					$onestr .= $row["time"]."\n".$row["words"]."\n";
-					$id = $row["id"];
-					$query = "update one set pcount = pcount+1 where id = '$id'";  
-					mysql_query($sql,$conn); 
-				}
-			}
-			mysql_close($conn);
+ 		$sql = "select words, time, id  from one where words  LIKE '%$words%' or time LIKE '%$words%' order by RAND()  limit 1"; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$onestr .= $row["time"]."\n".$row["words"]."\n";
+			$id = $row["id"];
+			$sql = "update one set pcount = pcount+1 where id = '$id'"; 
+			$mysqlHelperObj->execute($sql); 
 		}
 		return stripslashes($onestr);
 	} 
 	/////////////////////////////////////////////////////////////////////位置
 	function d_setposition($fromuser, $position){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($zhidao_str);  
-			//database operation  
-			$sql = "update users set position='$position' where user = '$fromuser'";  
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$news_str = addslashes($zhidao_str);
+		$sql = "update users set position='$position' where user = '$fromuser'";  
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_getposition($fromuser){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$position = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			$sql = "select position  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$position = $row["position"];
-			} 
-			mysql_close($conn);
+		$sql = "select position  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$position = $row["position"];
 		}
 		return stripslashes($position);
 	} 
 	
 	/////////////////////////////////////////////////////////////////////通用
 	function d_setvalue($fromuser, $key, $value){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($zhidao_str);  
-			//database operation  
-			$sql = "update users set $key='$value' where user = '$fromuser'";  
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$news_str = addslashes($zhidao_str);  
+		$sql = "update users set $key='$value' where user = '$fromuser'";  
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_setvalues($fromuser, $key, $value, $key1, $value1){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($zhidao_str);  
-			//database operation  
-			$sql = "update users set $key='$value', $key1='$value1' where user = '$fromuser'";  
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$news_str = addslashes($zhidao_str);  
+		$sql = "update users set $key='$value', $key1='$value1' where user = '$fromuser'";  
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_setvalues_3($fromuser, $key, $value, $key1, $value1, $key2, $value2){
 		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			
-			$news_str = addslashes($zhidao_str);  
-			//database operation  
-			$sql = "update users set $key='$value', $key1='$value1', $key2='$value2' where user = '$fromuser'";  
-			$result =mysql_query($sql,$conn);
-			mysql_close($conn);
-		}
+		$news_str = addslashes($zhidao_str);
+		$sql = "update users set $key='$value', $key1='$value1', $key2='$value2' where user = '$fromuser'";  
+		$mysqlHelperObj = new mysqlHelper();
+		$mysqlHelperObj->execute($sql);
 	} 
 	function d_getvalue($fromuser, $key){
 		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$key = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			$sql = "select $key  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$key = $row["$key"];
-			} 
-			mysql_close($conn);
+		$sql = "select $key  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$key = $row["$key"];
 		}
 		return stripslashes($key);
 	} 
 	function d_getvalues($fromuser, $key, $key1){
-		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
+	
 		$value = '';
 		$value1 = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			$sql = "select  $key , $key1  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$value = $row["$key"];
-				$value1 = $row["$key1"];
-			} 
-			mysql_close($conn);
+		
+ 		$sql = "select  $key , $key1  from users where  user = '$fromuser' ";
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];		
+			$value = $row["$key"];
+			$value1 = $row["$key1"];
 		}
 		return array(stripslashes($value),stripslashes($value1)) ;
 	} 
 	function d_getvalues_3($fromuser, $key, $key1, $key2){
 		
- 		$hostname_conn = "mysql1403.ixwebhosting.com:3306"; 
-		$database_conn = "C360953_fangjun";   
-		$username_conn = "C360953_fangjun";
-		$password_conn = "Fangjun65320"; 
-		$conn = @mysql_connect($hostname_conn,$username_conn,$password_conn);
 		$value = '';
 		$value1 = '';
 		$value2 = '';
-		if ($conn){ 
-			mysql_select_db($database_conn, $conn); 
-			mysql_query("set names 'utf8'");  
-			$sql = "select  $key , $key1, $key2  from users where  user = '$fromuser' "; 
-			if($result =mysql_query($sql,$conn)){  
-				$row = mysql_fetch_array($result);
-				$value = $row["$key"];
-				$value1 = $row["$key1"];
-				$value2 = $row["$key2"];
-			} 
-			mysql_close($conn);
+		
+		$sql = "select  $key , $key1, $key2  from users where  user = '$fromuser' "; 
+		$mysqlHelperObj = new mysqlHelper();
+		$rows = $mysqlHelperObj->queryValueArray($sql);
+		if($rows != ""){   
+			$row = $rows[0];
+			$value = $row["$key"];
+			$value1 = $row["$key1"];
+			$value2 = $row["$key2"];
 		}
 		return array(stripslashes($value),stripslashes($value1), stripslashes($value2)) ;
 	} 

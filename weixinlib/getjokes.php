@@ -127,8 +127,8 @@
 		//	die("failed to open database error:".mysql_error());
 		}
 	} 
-	 set_time_limit(0); 
+	 //set_time_limit(0); 
 	 //getjoke(1000); 
 	 //getjokes(2);
-	 getjzw();
+	 //getjzw();
  ?>

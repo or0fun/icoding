@@ -1,18 +1,15 @@
-﻿<?php
-/**
-  * wechat php test
-  */ 
+<?php
 require_once 'weixinlib/textmsg.php';
 require_once 'weixinlib/secretmsg.php';
+require_once 'weixinlib/clickmsg.php';
 
-//define your token
 define('TOKEN', 'icoding520');  
 $wechatObj = new wechatCallbackapiTest();
-$wechatObj->valid();
+$wechatObj->response();
 
 class wechatCallbackapiTest
 {
-	public function valid()
+	public function response()
     {
         $echoStr = $_GET['echostr'];
 
@@ -80,10 +77,10 @@ class wechatCallbackapiTest
 			
 			if($getMsgType == 'text'){
 				//取消自动回复
-			//	if(d_isautoreply($fromUsername) == 0){ 		
-			//		$ctype = 'type';
-			//		$contentStr = '正在输入...'; 
-			//	}else
+				if(d_isautoreply($fromUsername) == 0){
+					$ctype = 'type';
+					$contentStr = '正在输入...';
+				}else
 				{
 					$keyword = trim($postObj->Content);
 				//	$contentStr = $keyword; 
@@ -97,10 +94,10 @@ class wechatCallbackapiTest
 			else if($getMsgType == 'image'){				
 				$ctype = 'image';
 				$contentStr = '亲，谢谢您分享图片~'; 
-				$PicUrl = $postObj->PicUrl;				
+				$PicUrl = $postObj->PicUrl;
 			} 
 			//location
-			else if($getMsgType == 'location'){ 
+			else if($getMsgType == 'location'){
 				$wechat_weatherObj = new wechat_weather();
 			//	$contentStr = $wechat_weatherObj->getweatherbylocation($postObj->Label,$postObj->Location_X, $postObj->Location_Y); 
 				d_setposition( $fromUsername, $postObj->Location_X.','.$postObj->Location_Y);
@@ -124,15 +121,17 @@ class wechatCallbackapiTest
 					d_setunsubscribe($fromUsername);
 					$contentStr ='你不要我了..';
 					$ctype = 'unsubscribe';
-				}else if($postObj->Event == 'subscribe'){ 			
-					
+				}else if($postObj->Event == 'subscribe'){                   
+					d_insertuser($fromUsername);
 					$wechat_globleObj = new wechat_globle();
-					$contentStr = $wechat_globleObj->welcome($fromUsername);
-	 
-				    $contentStr = secret_welcome().$contentStr;	 	
-					$ctype = 'attention';	 
-				}					
-			} 
+					$contentStr = $wechat_globleObj->welcome($fromUsername);			
+				    $contentStr = secret_welcome().$contentStr;
+					$ctype = 'attention';
+				}else if($postObj->Event == 'CLICK'){					
+					$webchat_clickmsgObj = new webchat_clickmsg();
+					list($contentStr, $ctype) = $webchat_clickmsgObj->dotext($postObj->EventKey, $fromUsername); 
+				}				
+			}
 			//event
 			else if($getMsgType == 'voice'){
 				$motion = array("我好喜欢你/:@>/:<@", "你的声音真好听/:B-)","我会一直陪着你的/::>","好吧 其实根本我听不懂，我只能理解文字",
@@ -144,15 +143,13 @@ class wechatCallbackapiTest
 			else if(strstr($postStr ,'unsubscribe')){ 
 				d_setunsubscribe($fromUsername);
 				$contentStr ='你不要我了..';
-			} 
-			//
+			}
 			else{ 				
 				$msgType = 'text';
 				$motion = array("/:@>/:<@", "/:B-)","/::>","/::,@","/::D","/::)","/::P","/::$","/:,@-D","/:,@P", "我喜欢你", "我会一直陪着你的");
 				$contentStr = $motion[rand(0, count($motion)-1)];
 				$ctype = 'motion'; 
-			}
-			
+			}			
 			///////////////////////////////////////////////////////
 			if(strstr($contentStr, 'Oops')){ 
 				$contentStr .= "\n【重新获取回复m】";
@@ -179,8 +176,8 @@ class wechatCallbackapiTest
 				$title = substr($contentStr, 0, $index);
 				$link = substr($contentStr, $index+1, $index2-$index-1);
 				$des = substr($contentStr, $index2+1, $index3-$index2-1);
-				$lrclink = substr($contentStr, $index3+1);
-				$resultStr = sprintf($musicTpl, $fromUsername, $toUsername, $time, $title, $des, $link, $lrclink); 
+				$hqlink = substr($contentStr, $index3+1);
+				$resultStr = sprintf($musicTpl, $fromUsername, $toUsername, $time, $title, $des, $link, $hqlink); 
 			} 
 			else if($ctype == 'voice')
 			{
@@ -200,6 +197,7 @@ class wechatCallbackapiTest
 			}
 			else
 			{//其他
+				$contentStr .= $this->getending();
 				$resultStr = sprintf($textTpl, $fromUsername, $toUsername, $time, $msgType, $contentStr); 
 			}
 			if(!(strstr($contentStr, '正在输入') && d_isautoreply($fromUsername) == 0))
@@ -231,13 +229,13 @@ class wechatCallbackapiTest
 		
 	private function checkSignature()
 	{
-        $signature = $_GET['signature'];
-        $timestamp = $_GET['timestamp'];
-        $nonce = $_GET['nonce'];	
-        		
+        $signature = $_GET["signature"];
+        $timestamp = $_GET["timestamp"];
+        $nonce = $_GET["nonce"];
+        
 		$token = TOKEN;
 		$tmpArr = array($token, $timestamp, $nonce);
-		sort($tmpArr);
+		sort($tmpArr, SORT_STRING);
 		$tmpStr = implode( $tmpArr );
 		$tmpStr = sha1( $tmpStr );
 		
@@ -246,6 +244,22 @@ class wechatCallbackapiTest
 		}else{
 			return false;
 		}
-	}   
+	}
+	
+	function getending()
+	{
+		$i = rand(0, 100);
+		if ($i % 20 == 0)
+		{
+			return "\n\n觉得好的话，就把我推荐给你的朋友吧~~\n";
+		}
+		if ($i % 8 == 0)
+		{
+			return "\n\n----------\n觉得好的话，恳求您能点开链接资助我们，一元两元都是对iCoding莫大的帮助，谢谢！http://t.cn/8sbaq5I\n";
+		}
+
+		return '';
+	}
+
 }
 ?>

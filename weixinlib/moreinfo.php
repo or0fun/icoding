@@ -1,7 +1,7 @@
 ﻿<?php
 //$wechat_94qingObj = new wechat_moreInfo();
 //echo $wechat_94qingObj->getJZW(); 
-//echo $wechat_94qingObj->getCTS3('我爱你'); 
+//echo $wechat_94qingObj->getCTS2('我爱你'); 
 //echo  $wechat_weatherObj->getairbycity('101030100');
 class wechat_moreInfo
 {
@@ -66,12 +66,13 @@ class wechat_moreInfo
 	//藏尾诗
 	public function getCWS($keyword)
 	{
-		$curlPost = 'm=2&t=7&p=1&fs=1&em=0&i='.$keyword;
+		$curlPost = 'm=2&t=7&p=1&fs=0&em=0&i='.$keyword;
 		
 		$ch = curl_init(); 
 		curl_setopt($ch,CURLOPT_URL,'http://cts.showku.com/response.aspx?action=1'); 
 		curl_setopt($ch, CURLOPT_HEADER, 0);  
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+		curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.97 Safari/537.22"); 
 		curl_setopt($ch, CURLOPT_POST, 1); 
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost); 
 		$data = curl_exec($ch); 
@@ -87,7 +88,7 @@ class wechat_moreInfo
 			$wlen = mb_strlen($keyword,'utf-8');
 			$dlen = mb_strlen($data,'utf-8');
 			if ($dlen >= $wlen * 8)
-				return $keyword."\n\n".$data."\n\n【再发一次可以获取不一样的藏头诗】";
+				return $keyword."\n\n".$data."\n\n【再发一次可以获取不一样的藏尾诗】";
 		}
 		return "~~~~(>_<)~~~~ 好难..我作不出这首诗...";
 	}
@@ -142,12 +143,13 @@ class wechat_moreInfo
 	}
 	public function getCTS2($keyword)
 	{
-		$curlPost = 'm=0&t=7&p=1&fs=1&em=0&i='.$keyword;
-		
+		$curlPost = 'm=0&t=7&p=1&fs=0&em=0&i='.$keyword;
+		 
 		$ch = curl_init(); 
 		curl_setopt($ch,CURLOPT_URL,'http://cts.showku.com/response.aspx?action=1'); 
 		curl_setopt($ch, CURLOPT_HEADER, 0);  
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
+		curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.97 Safari/537.22"); 
 		curl_setopt($ch, CURLOPT_POST, 1); 
 		curl_setopt($ch, CURLOPT_POSTFIELDS, $curlPost); 
 		$data = curl_exec($ch); 
@@ -169,8 +171,8 @@ class wechat_moreInfo
 	}
 	//藏头诗
 	public function getCTS($keyword)
-	{		 
-		return $this->getCTS3($keyword);
+	{		  
+		return $this->getCTS2($keyword);
 		if(!strstr($keyword, '藏头诗'))
 		{
 			$keyword = '藏头诗'.$keyword;
